@@ -31,7 +31,6 @@ export default function TestPage() {
   // ▶ 플레이어 상태
   const [playerHp, setPlayerHp] = useState(100);
   const [playerLevel, setPlayerLevel] = useState(1);
-  const [gold, setGold] = useState(0);
 
   // ▶ Buff 상태 (전투용)
   const [buffs, setBuffs] = useState<Record<string, number>>({
@@ -147,7 +146,6 @@ export default function TestPage() {
   const handleRestart = () => {
     setPlayerHp(100);
     setPlayerLevel(1);
-    setGold(0);
     setBuffs({ hp: 0, strength: 0, dexterity: 0, constitution: 0 });
     setBackground("");
     setHistory(["시작"]);
