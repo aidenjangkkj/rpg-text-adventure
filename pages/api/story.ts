@@ -13,7 +13,6 @@ interface ResBody {
   choices?: string[]
   isCombat?: boolean
   dangerLevel?: string
-  rewards?: { gold: number; items: string[] }
   enemyLevel?: number
   buffs?: { target: 'hp'|'strength'|'dexterity'|'constitution'; amount: number }[]
   error?: string
