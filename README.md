@@ -31,7 +31,7 @@
 - **상태 관리**: Zustand (localStorage 동기화)  
 - **AI API**: Google Gemini (REST API)  
 - **테스트**: Jest + React Testing Library  
-- **배포**: Vercel  
+- **배포**: Vercel  https://rpg-text-adventure.vercel.app/
 - **모니터링**: Sentry / LogRocket
 
 ---
