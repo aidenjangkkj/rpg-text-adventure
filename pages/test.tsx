@@ -83,7 +83,7 @@ export default function TestPage() {
       }
       const dl = data.dangerLevel ?? "";
       setDangerLevel(dl);
-      let base = playerLevel;
+      const base = playerLevel;
       let adj = data.enemyLevel ?? base;
       switch (dl) {
         case "low":
@@ -117,7 +117,8 @@ export default function TestPage() {
       // 히스토리 업데이트
       setHistory((h) => [...h, `선택: ${choice}`, `이야기: ${data.story}`]);
     } catch (e: any) {
-      setError(e.message);
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(msg);
     } finally {
       setLoading(false);
     }

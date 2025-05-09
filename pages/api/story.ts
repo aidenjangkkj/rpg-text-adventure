@@ -65,8 +65,10 @@ ${combatLine}
 
     const parsed = JSON.parse(match[0]) as Omit<ResBody, 'error'>
     return res.status(200).json(parsed)
-  } catch (err: any) {
-    console.error(err)
-    return res.status(500).json({ error: err.message })
-  }
+  } catch (err: unknown) {
+    console.error(err);
+    // unknown 에러를 안전하게 처리
+    const message = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ error: message });
+}
 }
