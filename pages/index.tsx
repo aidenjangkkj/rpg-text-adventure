@@ -2,6 +2,7 @@
 "use client";
 import "../app/globals.css";
 import React, { useState } from "react";
+import { useStoryStore } from "@/stores/useStoryStore";
 import { CombatComponent } from "@/components/CombatComponent";
 
 // ▶ Buff 타입 정의
@@ -29,36 +30,38 @@ export default function TestPage() {
   const [race, setRace] = useState("인간");
 
   // ▶ 플레이어 상태
-  const [playerHp, setPlayerHp] = useState(100);
-  const [playerLevel, setPlayerLevel] = useState(1);
+  const playerHp = useStoryStore((s) => s.playerHp);
+  const setPlayerHp = useStoryStore((s) => s.setPlayerHp);
+  const playerLevel = useStoryStore((s) => s.playerLevel);
+  const setPlayerLevel = useStoryStore((s) => s.setPlayerLevel);
 
   // ▶ Buff 상태 (전투용)
-  const [buffs, setBuffs] = useState<Record<string, number>>({
-    hp: 0,
-    strength: 0,
-    dexterity: 0,
-    constitution: 0,
-  });
+  const buffs = useStoryStore((s) => s.buffs);
+  const setBuffs = useStoryStore((s) => s.setBuffs);
 
   // ▶ 스토리/플로우 상태
   const [background, setBackground] = useState("");
-  const [history, setHistory] = useState<string[]>(["시작"]);
-  const [story, setStory] = useState("");
-  const [choices, setChoices] = useState<string[]>([]);
+  const history = useStoryStore((s) => s.history);
+  const addHistory = useStoryStore((s) => s.addHistory);
+  const story = useStoryStore((s) => s.story);
+  const setStory = useStoryStore((s) => s.setStory);
+  const choices = useStoryStore((s) => s.choices);
+  const setChoices = useStoryStore((s) => s.setChoices);
   const [isCombat, setIsCombat] = useState(false);
   const [pendingCombat, setPendingCombat] = useState(false);
-  const [dangerLevel, setDangerLevel] = useState("");
+  const dangerLevel    = useStoryStore(s => s.dangerLevel);
+  const setDangerLevel = useStoryStore(s => s.setDangerLevel);
   const [enemyLevel, setEnemyLevel] = useState(1);
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [hasStarted, setHasStarted] = useState(false);
+  const loading = useStoryStore((s) => s.loading);
+  const setLoading = useStoryStore((s) => s.setLoading);
+  const error = useStoryStore((s) => s.error);
+  const setError = useStoryStore((s) => s.setError);
+  const hasStarted = history.length > 0;
   const [gameOver, setGameOver] = useState(false);
 
   // ▶ AI 호출 공통 함수
-  const callStory = async (
-    choice: string,
-    combatResult?: '승리'| '패배') => {
+  const callStory = async (choice: string, combatResult?: "승리" | "패배") => {
     setLoading(true);
     setError("");
 
@@ -104,18 +107,19 @@ export default function TestPage() {
       if (data.buffs) {
         data.buffs.forEach((b) => {
           if (b.target === "hp") {
-            setPlayerHp((h) => h + b.amount);
+            setPlayerHp(playerHp + b.amount);
           } else {
-            setBuffs((prev) => ({
-              ...prev,
-              [b.target]: (prev[b.target] || 0) + b.amount,
-            }));
+            setBuffs({
+              ...buffs,
+              [b.target]: (buffs[b.target] || 0) + b.amount,
+            });
           }
         });
       }
 
       // 히스토리 업데이트
-      setHistory((h) => [...h, `선택: ${choice}`, `이야기: ${data.story}`]);
+      addHistory(`선택: ${choice}`);
+      addHistory(`이야기: ${data.story}`);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       setError(msg);
@@ -129,18 +133,19 @@ export default function TestPage() {
     setBackground(
       `당신의 이름은 ${name}이며, ${age}살 ${gender} ${race}입니다. 여정이 시작됩니다.`
     );
+    addHistory("시작");
     callStory("");
-    setHasStarted(true);
   };
 
   // ▶ 전투 종료 콜백
   const handleCombatEnd = (result: "승리" | "패배") => {
     setIsCombat(false);
-    if (result === "패배"){setGameOver(true);}
-    else{
+    if (result === "패배") {
+      setGameOver(true);
+    } else {
       setPendingCombat(false);
-      callStory("",result);
-    } 
+      callStory("", result);
+    }
   };
 
   // ▶ 다시 시작
@@ -149,15 +154,20 @@ export default function TestPage() {
     setPlayerLevel(1);
     setBuffs({ hp: 0, strength: 0, dexterity: 0, constitution: 0 });
     setBackground("");
-    setHistory(["시작"]);
     setStory("");
     setChoices([]);
     setDangerLevel("");
     setEnemyLevel(1);
     setIsCombat(false);
-    setError("");
-    setHasStarted(false);
     setGameOver(false);
+    useStoryStore.setState({
+      history: [],
+      error: null,
+      loading: false,
+      playerHp: 100,
+      playerLevel: 1,
+      buffs: { hp: 0, strength: 0, dexterity: 0, constitution: 0 },
+    });
   };
 
   // ▶ 캐릭터 생성 화면
@@ -251,7 +261,7 @@ export default function TestPage() {
         {loading ? (
           <p className="text-center text-yellow-400">로딩 중…</p>
         ) : (
-          <p>{story}</p>
+          <p className="break-keep">{story}</p>
         )}
         {error && <p className="text-red-500 mt-2">{error}</p>}
       </div>
@@ -266,29 +276,29 @@ export default function TestPage() {
             enemyLevel={enemyLevel}
             playerLevel={playerLevel}
             buffStats={buffs}
-            onVictory={() => setPlayerLevel((l) => l + 1)}
+            onVictory={() => setPlayerLevel(playerLevel + 1)}
             onEnd={handleCombatEnd}
           />
         </div>
       ) : (
         <div className="max-w-md mx-auto grid grid-cols-1 sm:grid-cols-2 gap-2">
-{choices.map((opt, i) => (
-           <button
-             key={i}
-             onClick={() => {
-               if (pendingCombat) {
-                 setPendingCombat(false);
-                 setIsCombat(true);
-               } else {
-                 callStory(opt);
-               }
-             }}
-             disabled={loading}
-             className="px-4 py-2 bg-yellow-600 rounded"
-           >
-             {opt}
-           </button>
-         ))}
+          {choices.map((opt, i) => (
+            <button
+              key={i}
+              onClick={() => {
+                if (pendingCombat) {
+                  setPendingCombat(false);
+                  setIsCombat(true);
+                } else {
+                  callStory(opt);
+                }
+              }}
+              disabled={loading}
+              className="px-4 py-2 bg-yellow-600 rounded"
+            >
+              {opt}
+            </button>
+          ))}
         </div>
       )}
     </div>

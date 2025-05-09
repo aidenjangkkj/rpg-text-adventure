@@ -13,7 +13,7 @@ function rollD20(): number {
 
 interface CombatProps {
   playerHp: number;
-  setPlayerHp: React.Dispatch<React.SetStateAction<number>>;
+  setPlayerHp: (newHp: number) => void;
   enemyLevel: number;
   playerLevel: number;
   buffStats: Record<string, number>;
@@ -79,15 +79,13 @@ export function CombatComponent({
       total = roll + enemyAtkBonus;
     if (total >= 15) {
       const dmg = Math.max(1, rollDice(enemyDmgDie) - conMod);
-      setPlayerHp((h) => {
-        const newHp = h - dmg;
-        setPlayerHit(true);
-        setTimeout(() => setPlayerHit(false), 300);
-        if (newHp <= 0) {
-          onEnd("패배");
-        }
-        return newHp;
-      });
+      const newHp = playerHp - dmg;
+      setPlayerHp(newHp);
+      setPlayerHit(true);
+      setTimeout(() => setPlayerHit(false), 300);
+      if (newHp <= 0) {
+        onEnd("패배");
+      }
     }
   };
 
@@ -106,35 +104,35 @@ export function CombatComponent({
   };
 
   return (
-      <div className="w-full max-w-md p-4 bg-gray-800 rounded-lg shadow-inner mx-auto">
-        <h2 className="text-2xl font-bold mb-4 text-red-400">⚔️ 전투!</h2>
-        <div className="flex justify-between mb-4 text-gray-200">
-          <p className={playerHit ? "text-red-400 animate-pulse" : ""}>
-            💖 {playerHp > 0 ? playerHp : 0}
-          </p>
-          <p className={enemyHit ? "text-red-400 animate-pulse" : ""}>
-            ☠️ {enemyHp > 0 ? enemyHp : 0}
-          </p>
-        </div>
-        <div className="mb-4 flex justify-between text-sm text-gray-200">
-          <span>
-            STR: {strength} (+{strMod})
-          </span>
-          <span>DEX: {dexterity}</span>
-          <span>CON: {constitution}</span>
-        </div>
-        {isRolling && (
-          <div className="flex justify-center mb-4">
-            <div className="text-6xl animate-spin">🎲</div>
-          </div>
-        )}
-        <button
-          onClick={handleAttackClick}
-          disabled={playerHp <= 0 || enemyHp <= 0 || isRolling}
-          className="w-full py-2 bg-red-600 hover:bg-red-500 active:translate-y-0.5 rounded-lg font-semibold text-white"
-        >
-          공격 (d20+5, dmg d8+{strMod})
-        </button>
+    <div className="w-full max-w-md p-4 bg-gray-800 rounded-lg shadow-inner mx-auto">
+      <h2 className="text-2xl font-bold mb-4 text-red-400">⚔️ 전투!</h2>
+      <div className="flex justify-between mb-4 text-gray-200">
+        <p className={playerHit ? "text-red-400 animate-pulse" : ""}>
+          💖 {playerHp > 0 ? playerHp : 0}
+        </p>
+        <p className={enemyHit ? "text-red-400 animate-pulse" : ""}>
+          ☠️ {enemyHp > 0 ? enemyHp : 0}
+        </p>
       </div>
+      <div className="mb-4 flex justify-between text-sm text-gray-200">
+        <span>
+          STR: {strength} (+{strMod})
+        </span>
+        <span>DEX: {dexterity}</span>
+        <span>CON: {constitution}</span>
+      </div>
+      {isRolling && (
+        <div className="flex justify-center mb-4">
+          <div className="text-6xl animate-spin">🎲</div>
+        </div>
+      )}
+      <button
+        onClick={handleAttackClick}
+        disabled={playerHp <= 0 || enemyHp <= 0 || isRolling}
+        className="w-full py-2 bg-red-600 hover:bg-red-500 active:translate-y-0.5 rounded-lg font-semibold text-white"
+      >
+        공격 (d20+5, dmg d8+{strMod})
+      </button>
+    </div>
   );
 }

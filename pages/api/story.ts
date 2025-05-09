@@ -37,7 +37,8 @@ export default async function handler(
 `
 
   const jsonDirective = `
-반드시 순수 JSON만 출력해주세요. isCombat의 경우 선택지에 따라 설정해야합니다. 형식:
+반드시 순수 JSON만 출력해주세요. isCombat의 경우 선택지에 따라 설정해야합니다. story의 경우 문장을 마침표를 기준으로 나누어야 합니다.
+형식:
 {
   "story": "...",
   "choices": ["...","..."],
