@@ -49,8 +49,8 @@ export default function TestPage() {
   const setChoices = useStoryStore((s) => s.setChoices);
   const [isCombat, setIsCombat] = useState(false);
   const [pendingCombat, setPendingCombat] = useState(false);
-  const dangerLevel    = useStoryStore(s => s.dangerLevel);
-  const setDangerLevel = useStoryStore(s => s.setDangerLevel);
+  const dangerLevel = useStoryStore((s) => s.dangerLevel);
+  const setDangerLevel = useStoryStore((s) => s.setDangerLevel);
   const [enemyLevel, setEnemyLevel] = useState(1);
 
   const loading = useStoryStore((s) => s.loading);
@@ -226,6 +226,20 @@ export default function TestPage() {
           className="px-6 py-3 bg-yellow-600 rounded text-black"
         >
           다시 시작하기
+        </button>
+      </div>
+    );
+  }
+  if (!isCombat && choices.length === 0) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-gray-900 to-black text-yellow-200 p-4">
+        <h1 className="text-4xl mb-4">🏆 모험 완료!</h1>
+        <p className="mb-6">여정이 끝났습니다. 수고하셨습니다!</p>
+        <button
+          onClick={handleRestart}
+          className="px-6 py-3 bg-yellow-600 rounded text-black"
+        >
+          처음부터 다시 시작
         </button>
       </div>
     );
