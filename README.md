@@ -83,20 +83,15 @@
 .
 ├── app/
 │   ├── globals.css          # 전역 스타일
-│   ├── layout.tsx           # 공통 레이아웃
-│   └── page.tsx             # 메인 페이지
+│   └── layout.tsx           # 공통 레이아웃
 ├── components/
 │   └── CombatComponent.tsx  # 전투 UI
 ├── lib/
-│   ├── openai.ts            # OpenAI/Gemini 호출 래퍼
-│   └── prompts.ts           # 프롬프트 템플릿
+│   └── gemini.ts            # OpenAI/Gemini 호출 래퍼
 ├── pages/
 │   └── api/
 │       └── story.ts         # `/api/story` 엔드포인트
-├── store/                   # Zustand 스토어
-├── styles/
-│   └── tailwind.config.js   # Tailwind 설정
-├── jest.config.js           # Jest 설정
+├── stores/                   # Zustand 스토어
 ├── tsconfig.json            # TypeScript 설정
 └── package.json
 ```
