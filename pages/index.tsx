@@ -250,7 +250,9 @@ export default function TestPage() {
 
   // ▶ 메인 게임 UI
   return (
+    
     <div className="min-h-screen p-4 bg-gradient-to-b from-gray-900 to-black text-yellow-200">
+    <Analytics/>
       <h1 className="text-3xl mb-6 text-center">모험 진행 중</h1>
 
       {/* ▶ 플레이어 상태 */}
