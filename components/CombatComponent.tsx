@@ -131,7 +131,7 @@ export function CombatComponent({
         disabled={playerHp <= 0 || enemyHp <= 0 || isRolling}
         className="w-full py-2 bg-red-600 hover:bg-red-500 active:translate-y-0.5 rounded-lg font-semibold text-white"
       >
-        공격 (d20+5, dmg d8+{strMod})
+        공격 {`(d20+5, dmg d8+${strMod})`}
       </button>
     </div>
   );

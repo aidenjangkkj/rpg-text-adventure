@@ -83,20 +83,15 @@
 .
 ├── app/
 │   ├── globals.css          # 전역 스타일
-│   ├── layout.tsx           # 공통 레이아웃
-│   └── page.tsx             # 메인 페이지
+│   └── layout.tsx           # 공통 레이아웃
 ├── components/
 │   └── CombatComponent.tsx  # 전투 UI
 ├── lib/
-│   ├── openai.ts            # OpenAI/Gemini 호출 래퍼
-│   └── prompts.ts           # 프롬프트 템플릿
+│   └── gemini.ts            # OpenAI/Gemini 호출 래퍼
 ├── pages/
 │   └── api/
 │       └── story.ts         # `/api/story` 엔드포인트
-├── store/                   # Zustand 스토어
-├── styles/
-│   └── tailwind.config.js   # Tailwind 설정
-├── jest.config.js           # Jest 설정
+├── stores/                   # Zustand 스토어
 ├── tsconfig.json            # TypeScript 설정
 └── package.json
 ```
@@ -109,8 +104,8 @@
 2. **스토리 읽기**: AI 생성 스토리, 위험도·버프 확인  
 3. **선택지 선택**: 버튼 클릭으로 분기 진행  
 4. **전투 모드**: “전투 발생” 시 전투 UI 등장 → 공격 버튼으로 턴 진행  
-5. **전투 종료**: 승리 시 AI에 결과 전달 → 다음 스토리, 패배 시 Game Over  
-8. **이어하기**: 페이지 새로고침해도 진행 기록(history) 유지
+5. **전투 종료**: 승리 시 AI에 결과 전달 → 다음 스토리, 패배 시 Game Over
+6. **이어하기**: 페이지 새로고침해도 진행 기록(history) 유지
 
 ---
 

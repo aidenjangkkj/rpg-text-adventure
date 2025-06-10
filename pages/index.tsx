@@ -105,16 +105,19 @@ export default function TestPage() {
 
       // 추가 Buffs
       if (data.buffs) {
+        let hpBonus = 0;
+        const updatedBuffs = { ...buffs };
         data.buffs.forEach((b) => {
           if (b.target === "hp") {
-            setPlayerHp(playerHp + b.amount);
+            hpBonus += b.amount;
           } else {
-            setBuffs({
-              ...buffs,
-              [b.target]: (buffs[b.target] || 0) + b.amount,
-            });
+            updatedBuffs[b.target] = (updatedBuffs[b.target] || 0) + b.amount;
           }
         });
+        if (hpBonus !== 0) {
+          setPlayerHp(playerHp + hpBonus);
+        }
+        setBuffs(updatedBuffs);
       }
 
       // 히스토리 업데이트
