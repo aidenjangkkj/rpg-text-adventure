@@ -4,7 +4,7 @@ import "../app/globals.css";
 import React, { useState } from "react";
 import { useStoryStore } from "@/stores/useStoryStore";
 import { CombatComponent } from "@/components/CombatComponent";
-
+import { Analytics } from "@vercel/analytics/next"
 // ▶ Buff 타입 정의
 interface Buff {
   target: "hp" | "strength" | "dexterity" | "constitution";
