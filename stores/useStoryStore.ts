@@ -12,6 +12,8 @@ interface StoryState {
   buffs: Record<string, number>;
   story: string;
   choices: string[];
+  race: string;
+  className: string;
   dangerLevel: string
   setDangerLevel: (dl: string) => void
   setStory: (s: string) => void;
@@ -23,6 +25,8 @@ interface StoryState {
   setPlayerHp: (hp: number) => void;
   setPlayerLevel: (level: number) => void;
   setBuffs: (buffs: Record<string, number>) => void;
+  setRace: (race: string) => void;
+  setClassName: (cls: string) => void;
 }
 
 export const useStoryStore = create<StoryState>()(
@@ -42,9 +46,11 @@ export const useStoryStore = create<StoryState>()(
         dexterity: 0,
         constitution: 0,
       },
+      race: '',
+      className: '',
       story: "",
       choices: [],
-      dangerLevel: '', 
+      dangerLevel: '',
       setDangerLevel: (dl) => set({ dangerLevel: dl }),
       setStory: (s) => set({ story: s }),
       setChoices: (c) => set({ choices: c }),
@@ -59,6 +65,8 @@ export const useStoryStore = create<StoryState>()(
       setPlayerHp: (hp) => set({ playerHp: hp }),
       setPlayerLevel: (level) => set({ playerLevel: level }),
       setBuffs: (buffs) => set({ buffs }),
+      setRace: (race) => set({ race }),
+      setClassName: (cls) => set({ className: cls }),
     }),
     {
       name: "story-store",
