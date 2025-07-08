@@ -92,7 +92,14 @@ export default function TestPage() {
       const res = await fetch("/api/story", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ background, history, choice, combatResult }),
+        body: JSON.stringify({
+          background,
+          history,
+          choice,
+          combatResult,
+          race,
+          className,
+        }),
       });
 
       if (!res.ok) {
