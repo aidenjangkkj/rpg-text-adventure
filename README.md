@@ -55,10 +55,12 @@
    프로젝트 루트에 `.env.local` 파일 생성 후:
    ```env
    NEXT_PUBLIC_OPENAI_API_KEY=your_openai_api_key
-   NEXT_PUBLIC_GEMINI_API_KEY=your_gemini_api_key
+   GEMINI_API_KEY=your_gemini_api_key
    ```
 
-4. 개발 서버 실행  
+4. 5e-srd API 사용: 별도 키 없이 인터넷 연결만으로 D&D 데이터(종족, 클래스)를 불러옵니다.
+
+5. 개발 서버 실행
    ```bash
    npm run dev
    # or
@@ -66,7 +68,7 @@
    ```
    `http://localhost:3000` 에서 확인
 
-5. 프로덕션 빌드 & 실행  
+6. 프로덕션 빌드 & 실행
    ```bash
    npm run build
    npm run start
