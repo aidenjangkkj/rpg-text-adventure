@@ -1,7 +1,7 @@
 // pages/test.tsx
 "use client";
 import "../app/globals.css";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useStoryStore } from "@/stores/useStoryStore";
 import { CombatComponent } from "@/components/CombatComponent";
 import { Analytics } from "@vercel/analytics/next"
@@ -27,13 +27,36 @@ export default function TestPage() {
   const [name, setName] = useState("");
   const [gender, setGender] = useState("모름");
   const [age, setAge] = useState(18);
-  const [race, setRace] = useState("인간");
+  const [race, setRace] = useState("");
+  const [className, setClassName] = useState("");
+  const [raceList, setRaceList] = useState<string[]>([]);
+  const [classList, setClassList] = useState<string[]>([]);
+
+  useEffect(() => {
+    const loadOptions = async () => {
+      try {
+        const rRes = await fetch('/api/races');
+        if (rRes.ok) {
+          setRaceList(await rRes.json());
+        }
+        const cRes = await fetch('/api/classes');
+        if (cRes.ok) {
+          setClassList(await cRes.json());
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    loadOptions();
+  }, []);
 
   // ▶ 플레이어 상태
   const playerHp = useStoryStore((s) => s.playerHp);
   const setPlayerHp = useStoryStore((s) => s.setPlayerHp);
   const playerLevel = useStoryStore((s) => s.playerLevel);
   const setPlayerLevel = useStoryStore((s) => s.setPlayerLevel);
+  const setStoreRace = useStoryStore((s) => s.setRace);
+  const setStoreClass = useStoryStore((s) => s.setClassName);
 
   // ▶ Buff 상태 (전투용)
   const buffs = useStoryStore((s) => s.buffs);
@@ -69,8 +92,20 @@ export default function TestPage() {
       const res = await fetch("/api/story", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ background, history, choice, combatResult }),
+        body: JSON.stringify({
+          background,
+          history,
+          choice,
+          combatResult,
+          race,
+          className,
+        }),
       });
+
+      if (!res.ok) {
+        throw new Error(`Failed to fetch story: ${res.status}`);
+      }
+
       const data = (await res.json()) as ResBody;
       if (data.error) throw new Error(data.error);
 
@@ -134,8 +169,10 @@ export default function TestPage() {
   // ▶ 게임 시작
   const handleStart = () => {
     setBackground(
-      `당신의 이름은 ${name}이며, ${age}살 ${gender} ${race}입니다. 여정이 시작됩니다.`
+      `당신의 이름은 ${name}이며, ${age}살 ${gender} ${race} ${className}입니다. 여정이 시작됩니다.`
     );
+    setStoreRace(race);
+    setStoreClass(className);
     addHistory("시작");
     callStory("");
   };
@@ -156,6 +193,8 @@ export default function TestPage() {
     setPlayerHp(100);
     setPlayerLevel(1);
     setBuffs({ hp: 0, strength: 0, dexterity: 0, constitution: 0 });
+    setRace('');
+    setClassName('');
     setBackground("");
     setStory("");
     setChoices([]);
@@ -170,6 +209,8 @@ export default function TestPage() {
       playerHp: 100,
       playerLevel: 1,
       buffs: { hp: 0, strength: 0, dexterity: 0, constitution: 0 },
+      race: '',
+      className: '',
     });
   };
 
@@ -201,12 +242,26 @@ export default function TestPage() {
           onChange={(e) => setAge(+e.target.value)}
           className="mb-2 w-64 p-2 bg-gray-800 rounded"
         />
-        <input
-          placeholder="종족"
+        <select
           value={race}
           onChange={(e) => setRace(e.target.value)}
+          className="mb-2 w-64 p-2 bg-gray-800 rounded"
+        >
+          <option value="">종족 선택</option>
+          {raceList.map((r) => (
+            <option key={r}>{r}</option>
+          ))}
+        </select>
+        <select
+          value={className}
+          onChange={(e) => setClassName(e.target.value)}
           className="mb-4 w-64 p-2 bg-gray-800 rounded"
-        />
+        >
+          <option value="">클래스 선택</option>
+          {classList.map((c) => (
+            <option key={c}>{c}</option>
+          ))}
+        </select>
         <button
           onClick={handleStart}
           className="px-4 py-2 bg-yellow-600 rounded"

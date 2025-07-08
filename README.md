@@ -14,8 +14,10 @@
   d20 주사위 판정, 공격/방어 로직, 전투 UI, 승패에 따른 분기 처리.  
 - **위험도 기반 적 레벨 조정**  
   `low`/`medium`/`high` 위험도에 따라 적 레벨을 플레이어 레벨 대비 +0/+1/+2 만큼 보정합니다.  
-- **버프 시스템**  
-  AI 응답의 `buffs` 배열을 적용해 HP·힘·민첩·체력 등 스탯을 상승시킵니다.  
+- **버프 시스템**
+  AI 응답의 `buffs` 배열을 적용해 HP·힘·민첩·체력 등 스탯을 상승시킵니다.
+- **클래스/종족 반영 스토리**
+  5e-srd API로 불러온 클래스와 종족 선택을 스토리에 반영합니다.
 - **이어하기(History) 기능**  
   Zustand + localStorage로 선택/스토리 기록을 저장해 페이지 새로고침 후에도 복원합니다.  
 - **반응형 UI**  
@@ -55,10 +57,12 @@
    프로젝트 루트에 `.env.local` 파일 생성 후:
    ```env
    NEXT_PUBLIC_OPENAI_API_KEY=your_openai_api_key
-   NEXT_PUBLIC_GEMINI_API_KEY=your_gemini_api_key
+   GEMINI_API_KEY=your_gemini_api_key
    ```
 
-4. 개발 서버 실행  
+4. 5e-srd API 사용: 별도 키 없이 인터넷 연결만으로 D&D 데이터(종족, 클래스)를 불러옵니다.
+
+5. 개발 서버 실행
    ```bash
    npm run dev
    # or
@@ -66,7 +70,7 @@
    ```
    `http://localhost:3000` 에서 확인
 
-5. 프로덕션 빌드 & 실행  
+6. 프로덕션 빌드 & 실행
    ```bash
    npm run build
    npm run start

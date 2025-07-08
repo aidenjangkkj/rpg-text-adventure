@@ -7,6 +7,8 @@ interface ReqBody {
   history: string[]
   choice: string
   combatResult: string
+  race?: string
+  className?: string
 }
 interface ResBody {
   story?: string
@@ -22,11 +24,13 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<ResBody>
 ) {
-  const { background, history, choice,combatResult } = req.body as ReqBody
+  const { background, history, choice, combatResult, race, className } =
+    req.body as ReqBody
 
+  const characterLine = race && className ? `캐릭터는 ${race} ${className}입니다.` : ''
   const basePrompt = background?.trim()
-    ? `${background.trim()}\n\n이전 대화:\n${history.join('\n')}`
-    : `이전 대화:\n${history.join('\n')}`
+    ? `${background.trim()}\n${characterLine}\n\n이전 대화:\n${history.join('\n')}`
+    : `${characterLine}\n이전 대화:\n${history.join('\n')}`
   const combatLine = combatResult
    ? `전투 결과: ${combatResult}\n`
    : "";
