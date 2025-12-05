@@ -9,6 +9,7 @@ interface ReqBody {
   combatResult: string
   race?: string
   className?: string
+  traits?: string[]
 }
 interface ResBody {
   story?: string
@@ -27,7 +28,10 @@ export default async function handler(
   const { background, history, choice, combatResult, race, className } =
     req.body as ReqBody
 
-  const characterLine = race && className ? `캐릭터는 ${race} ${className}입니다.` : ''
+  const traitLine = Array.isArray(req.body.traits) && req.body.traits.length > 0
+    ? `보유 특성: ${req.body.traits.join(', ')}\n`
+    : ''
+  const characterLine = race && className ? `캐릭터는 ${race} ${className}입니다. ${traitLine}` : traitLine
   const basePrompt = background?.trim()
     ? `${background.trim()}\n${characterLine}\n\n이전 대화:\n${history.join('\n')}`
     : `${characterLine}\n이전 대화:\n${history.join('\n')}`
