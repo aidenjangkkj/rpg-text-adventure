@@ -120,7 +120,7 @@ export default function TestPage() {
   useEffect(() => {
     if (!race && storedRace) setRace(storedRace);
     if (!className && storedClass) setClassName(storedClass);
-  }, [storedRace, storedClass]);
+  }, [storedRace, storedClass, race, className, setRace, setClassName]);
 
   const sanitizeResponse = (raw: Partial<ResBody>): ResBody => {
     const story = typeof raw.story === "string" ? raw.story.trim() : "";
@@ -240,7 +240,7 @@ export default function TestPage() {
 
       let updatedHp = playerHp;
       let updatedEnergy = energy;
-      let updatedBuffs = { ...buffs };
+      const updatedBuffs = { ...buffs };
       if (data.buffs) {
         data.buffs.forEach((b) => {
           if (b.target === "hp") {
