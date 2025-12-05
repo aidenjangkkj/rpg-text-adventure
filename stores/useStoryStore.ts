@@ -9,11 +9,13 @@ interface StoryState {
   error: string | null;
   playerHp: number;
   playerLevel: number;
+  energy: number;
   buffs: Record<string, number>;
   story: string;
   choices: string[];
   race: string;
   className: string;
+  traits: string[];
   dangerLevel: string
   setDangerLevel: (dl: string) => void
   setStory: (s: string) => void;
@@ -24,9 +26,11 @@ interface StoryState {
   setError: (msg: string | null) => void;
   setPlayerHp: (hp: number) => void;
   setPlayerLevel: (level: number) => void;
+  setEnergy: (energy: number) => void;
   setBuffs: (buffs: Record<string, number>) => void;
   setRace: (race: string) => void;
   setClassName: (cls: string) => void;
+  setTraits: (traits: string[]) => void;
 }
 
 export const useStoryStore = create<StoryState>()(
@@ -40,14 +44,17 @@ export const useStoryStore = create<StoryState>()(
       // ▶ 플레이어 상태
       playerHp: 100,
       playerLevel: 1,
+      energy: 100,
       buffs: {
         hp: 0,
         strength: 0,
         dexterity: 0,
         constitution: 0,
+        energy: 0,
       },
       race: '',
       className: '',
+      traits: [],
       story: "",
       choices: [],
       dangerLevel: '',
@@ -56,7 +63,10 @@ export const useStoryStore = create<StoryState>()(
       setChoices: (c) => set({ choices: c }),
       // ▶ 액션들
       addHistory: (line) =>
-        set((state) => ({ history: [...state.history, line] })),
+        set((state) => {
+          const next = [...state.history, line].slice(-40)
+          return { history: next }
+        }),
       setChoice: (ch) => set({ choice: ch }),
       setLoading: (flag) => set({ loading: flag }),
       setError: (msg) => set({ error: msg }),
@@ -64,9 +74,11 @@ export const useStoryStore = create<StoryState>()(
       // ▶ 플레이어 상태 변경
       setPlayerHp: (hp) => set({ playerHp: hp }),
       setPlayerLevel: (level) => set({ playerLevel: level }),
+      setEnergy: (energy) => set({ energy }),
       setBuffs: (buffs) => set({ buffs }),
       setRace: (race) => set({ race }),
       setClassName: (cls) => set({ className: cls }),
+      setTraits: (traits) => set({ traits }),
     }),
     {
       name: "story-store",
