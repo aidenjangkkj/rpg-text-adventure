@@ -514,6 +514,8 @@ export default function TestPage() {
       : dangerLevel === "medium"
         ? "text-yellow-300"
         : "text-green-300";
+  const hpTone =
+    playerHp <= 20 ? "text-red-300" : playerHp <= 50 ? "text-yellow-200" : "text-green-300";
   const raceTraitInfo = getRaceTrait(race);
   const classTraitInfo = getClassTrait(className);
   const traitList = [raceTraitInfo, classTraitInfo].filter(Boolean) as Trait[];
@@ -527,184 +529,209 @@ export default function TestPage() {
 
   // ▶ 메인 게임 UI
   return (
-
     <div className="min-h-screen p-4 bg-gradient-to-b from-gray-900 to-black text-yellow-200">
-    <Analytics/>
-      <h1 className="text-3xl mb-6 text-center">모험 진행 중</h1>
+      <Analytics />
+      <div className="max-w-6xl mx-auto flex flex-col gap-4">
+        <header className="text-center bg-gray-800/80 rounded-xl p-4 shadow border border-yellow-700/30">
+          <h1 className="text-3xl font-bold">모험 진행 중</h1>
+          <p className="text-sm text-gray-300 mt-1">HP · 레벨 · 에너지 · 스토리 · 선택지를 한눈에 확인하세요.</p>
+        </header>
 
-      {/* ▶ 플레이어 상태 */}
-      <div className="max-w-md mx-auto grid gap-3 mb-4">
-        <div className="p-3 bg-gray-800 rounded flex justify-between items-center shadow">
-          <div>
-            <p className="text-sm text-gray-300">HP</p>
-            <p className="text-xl font-semibold">{playerHp}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-sm text-gray-300">Lv</p>
-            <p className="text-xl font-semibold">{playerLevel}</p>
-          </div>
-        </div>
-        <div className="p-3 bg-gray-800 rounded shadow">
-          <div className="flex justify-between text-sm text-gray-300">
-            <span>에너지</span>
-            <span>{energy} / 120</span>
-          </div>
-          <div className="w-full h-2 bg-gray-700 rounded mt-2">
-            <div
-              className="h-2 bg-green-500 rounded"
-              style={{ width: `${energyWidth}%` }}
-            ></div>
-          </div>
-        </div>
-      </div>
+        <div className="grid gap-4 lg:grid-cols-3">
+          {/* ▶ 메인 흐름 (스토리/기록/선택지) */}
+          <div className="lg:col-span-2 flex flex-col gap-4">
+            <div className="grid gap-3 sm:grid-cols-3 bg-gray-900/60 rounded-lg p-4 shadow border border-yellow-700/30">
+              <div className="flex flex-col gap-1">
+                <p className="text-xs text-gray-300 tracking-wide">HP</p>
+                <div className={`text-2xl font-bold ${hpTone}`}>{playerHp}</div>
+                <p className="text-xs text-gray-400">전투 준비 상태</p>
+              </div>
+              <div className="flex flex-col gap-1">
+                <p className="text-xs text-gray-300 tracking-wide">LEVEL</p>
+                <div className="text-2xl font-bold text-yellow-100">{playerLevel}</div>
+                <p className="text-xs text-gray-400">전투 승리 시 상승</p>
+              </div>
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center justify-between text-xs text-gray-300 tracking-wide">
+                  <span>에너지</span>
+                  <span className="text-gray-100">{energy} / 120</span>
+                </div>
+                <div className="w-full h-2 bg-gray-700 rounded">
+                  <div
+                    className="h-2 bg-green-500 rounded"
+                    style={{ width: `${energyWidth}%` }}
+                  ></div>
+                </div>
+                <p className="text-xs text-gray-400">휴식으로 회복</p>
+              </div>
+            </div>
 
-      {/* ▶ 위험도 & 버프 */}
-      <div className="max-w-md mx-auto grid gap-3 mb-3">
-        <div className="p-3 bg-gray-800 rounded shadow">
-          <p className="text-sm text-gray-300 mb-1">위험도</p>
-          <p className={`font-semibold ${dangerTone}`}>
-            {dangerLevel || "알 수 없음"}
-          </p>
-        </div>
-        <div className="p-3 bg-gray-800 rounded shadow">
-          <div className="flex justify-between items-center mb-1">
-            <p className="text-sm text-gray-300">챕터 {chapter}</p>
-            <span className="text-xs px-2 py-1 rounded bg-yellow-700/50 text-yellow-100">
-              {difficultyPresets[difficulty]?.label}
-            </span>
-          </div>
-          <p className="text-xs text-gray-400 mb-2">목표까지 {Math.max(0, CHAPTER_GOAL - chapterProgress)} 단계 남음</p>
-          <div className="w-full h-2 bg-gray-700 rounded">
-            <div
-              className="h-2 bg-yellow-500 rounded"
-              style={{ width: `${Math.min(100, Math.round((chapterProgress / CHAPTER_GOAL) * 100))}%` }}
-            ></div>
-          </div>
-        </div>
-      </div>
-      <div className="max-w-md mx-auto mb-4 p-3 bg-gray-800 rounded shadow">
-        <p className="text-sm text-gray-300 mb-2">버프</p>
-        <div className="flex flex-wrap gap-2">
-          {activeBuffs.length > 0 ? (
-            activeBuffs.map(([key, v]) => (
-              <span
-                key={key}
-                className="px-2 py-1 rounded-full text-xs bg-yellow-700 text-black"
-              >
-                {key} +{v}
-              </span>
-            ))
-          ) : (
-            <span className="text-gray-400 text-sm">적용된 버프 없음</span>
-          )}
-        </div>
-      </div>
-      <div className="max-w-md mx-auto mb-4 p-3 bg-gray-800 rounded shadow">
-        <p className="text-sm text-gray-300 mb-2">종족/클래스 특성</p>
-        {traitList.length > 0 ? (
-          <div className="flex flex-col gap-2">
-            {traitList.map((trait) => (
-              <div key={trait!.name} className="p-2 rounded bg-gray-900 border border-yellow-700/60">
-                <p className="font-semibold text-yellow-200">{trait!.name}</p>
-                <p className="text-sm text-gray-300">{trait!.summary}</p>
-                {formatTraitBonuses(trait!) && (
-                  <p className="text-xs text-yellow-300 mt-1">보너스: {formatTraitBonuses(trait!)}</p>
+            {pendingCombat && (
+              <div className="p-3 bg-red-900/40 border border-red-500 rounded shadow animate-pulse">
+                <p className="font-semibold text-red-200">{pendingMessage || "전투 준비 중"}</p>
+                <p className="text-sm text-red-100 mt-1">잠시 후 전투 화면으로 전환됩니다.</p>
+              </div>
+            )}
+
+            <div className="bg-gray-800 rounded-xl p-5 shadow border border-yellow-700/30 whitespace-pre-wrap">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-semibold">스토리</h2>
+                {dangerLevel && (
+                  <span className={`text-xs px-2 py-1 rounded border ${dangerTone} border-yellow-700/60`}>
+                    위험도: {dangerLevel}
+                  </span>
                 )}
               </div>
-            ))}
+              {loading ? <LoadingSpinner /> : <p className="break-keep leading-relaxed">{story}</p>}
+              {error && <p className="text-red-500 mt-2">{error}</p>}
+            </div>
+
+            <div className="bg-gray-900/70 rounded-xl p-4 shadow border border-yellow-700/20">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-semibold">최근 로그</h3>
+                <div className="flex flex-wrap gap-2 text-sm">
+                  {([
+                    { key: "all", label: "전체" },
+                    { key: "choice", label: "선택" },
+                    { key: "summary", label: "요약" },
+                    { key: "system", label: "시스템" },
+                  ] as { key: HistoryFilter; label: string }[]).map((item) => (
+                    <button
+                      key={item.key}
+                      onClick={() => setHistoryFilter(item.key)}
+                      className={`px-3 py-1 rounded border transition ${historyFilter === item.key ? "bg-yellow-600 text-black" : "bg-gray-800 text-yellow-200 border-yellow-700/40"}`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="p-3 bg-black/40 rounded max-h-48 overflow-y-auto text-sm text-gray-200 space-y-1">
+                {recentHistory.length > 0 ? (
+                  recentHistory.map((line, idx) => <p key={`${line}-${idx}`}>{line}</p>)
+                ) : (
+                  <p className="text-gray-500">표시할 기록이 없습니다.</p>
+                )}
+              </div>
+            </div>
+
+            {/* ▶ 전투 또는 선택지 */}
+            {isCombat ? (
+              <div className="w-full flex justify-center">
+                <CombatComponent
+                  key={enemyLevel}
+                  playerHp={playerHp}
+                  setPlayerHp={setPlayerHp}
+                  enemyLevel={enemyLevel}
+                  playerLevel={playerLevel}
+                  buffStats={buffs}
+                  dangerLevel={dangerLevel}
+                  energy={energy}
+                  setEnergy={setEnergy}
+                  onVictory={() => setPlayerLevel(playerLevel + 1)}
+                  onEnd={handleCombatEnd}
+                />
+              </div>
+            ) : (
+              <div className="bg-gray-800 rounded-xl p-4 shadow border border-yellow-700/30 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <h3 className="font-semibold">다음 행동</h3>
+                  <button
+                    onClick={handleRest}
+                    disabled={loading || pendingCombat}
+                    className="px-3 py-2 text-sm bg-blue-700 rounded shadow disabled:opacity-60"
+                  >
+                    💤 휴식 (에너지 회복)
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {choices.map((opt, i) => (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        if (pendingCombat) {
+                          setPendingCombat(false);
+                          setIsCombat(true);
+                        } else {
+                          callStory(opt);
+                        }
+                      }}
+                      disabled={loading || pendingCombat}
+                      className="px-4 py-2 bg-yellow-600 rounded font-semibold text-black shadow disabled:opacity-60"
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-        ) : (
-          <p className="text-sm text-gray-400">선택한 특성이 없습니다.</p>
-        )}
-      </div>
 
-      {pendingCombat && (
-        <div className="max-w-md mx-auto mb-4 p-3 bg-red-900/40 border border-red-500 rounded shadow animate-pulse">
-          <p className="font-semibold text-red-200">{pendingMessage || "전투 준비 중"}</p>
-          <p className="text-sm text-red-100 mt-1">잠시 후 전투 화면으로 전환됩니다.</p>
-        </div>
-      )}
+          {/* ▶ 보조 정보 (위험도/챕터/버프/특성) */}
+          <div className="flex flex-col gap-4">
+            <div className="p-4 bg-gray-800 rounded-xl shadow border border-yellow-700/30 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-gray-300">위험도</p>
+                <span className={`font-semibold ${dangerTone}`}>
+                  {dangerLevel || "알 수 없음"}
+                </span>
+              </div>
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <p className="text-sm text-gray-300">챕터 {chapter}</p>
+                  <span className="text-xs px-2 py-1 rounded bg-yellow-700/50 text-yellow-100">
+                    {difficultyPresets[difficulty]?.label}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-400 mb-2">목표까지 {Math.max(0, CHAPTER_GOAL - chapterProgress)} 단계 남음</p>
+                <div className="w-full h-2 bg-gray-700 rounded">
+                  <div
+                    className="h-2 bg-yellow-500 rounded"
+                    style={{ width: `${Math.min(100, Math.round((chapterProgress / CHAPTER_GOAL) * 100))}%` }}
+                  ></div>
+                </div>
+              </div>
+            </div>
 
-      <div className="max-w-md mx-auto mb-6 p-4 bg-gray-800 rounded whitespace-pre-wrap">
-        {loading ? <LoadingSpinner /> : <p className="break-keep">{story}</p>}
-        {error && <p className="text-red-500 mt-2">{error}</p>}
-      </div>
+            <div className="p-4 bg-gray-800 rounded-xl shadow border border-yellow-700/30">
+              <p className="text-sm text-gray-300 mb-2">버프</p>
+              <div className="flex flex-wrap gap-2">
+                {activeBuffs.length > 0 ? (
+                  activeBuffs.map(([key, v]) => (
+                    <span
+                      key={key}
+                      className="px-2 py-1 rounded-full text-xs bg-yellow-700 text-black"
+                    >
+                      {key} +{v}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-gray-400 text-sm">적용된 버프 없음</span>
+                )}
+              </div>
+            </div>
 
-      <div className="max-w-md mx-auto mb-4">
-        <div className="flex flex-wrap gap-2 mb-2 text-sm">
-          {([
-            { key: "all", label: "전체" },
-            { key: "choice", label: "선택" },
-            { key: "summary", label: "요약" },
-            { key: "system", label: "시스템" },
-          ] as { key: HistoryFilter; label: string }[]).map((item) => (
-            <button
-              key={item.key}
-              onClick={() => setHistoryFilter(item.key)}
-              className={`px-3 py-1 rounded border ${historyFilter === item.key ? "bg-yellow-600 text-black" : "bg-gray-800 text-yellow-200 border-yellow-700/40"}`}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-        <div className="p-3 bg-gray-900/70 rounded max-h-48 overflow-y-auto text-sm text-gray-200 space-y-1">
-          {recentHistory.length > 0 ? (
-            recentHistory.map((line, idx) => <p key={`${line}-${idx}`}>{line}</p>)
-          ) : (
-            <p className="text-gray-500">표시할 기록이 없습니다.</p>
-          )}
-        </div>
-      </div>
-
-      {/* ▶ 전투 또는 선택지 */}
-      {isCombat ? (
-        <div className="w-full flex justify-center">
-          <CombatComponent
-            key={enemyLevel}
-            playerHp={playerHp}
-            setPlayerHp={setPlayerHp}
-            enemyLevel={enemyLevel}
-            playerLevel={playerLevel}
-            buffStats={buffs}
-            dangerLevel={dangerLevel}
-            energy={energy}
-            setEnergy={setEnergy}
-            onVictory={() => setPlayerLevel(playerLevel + 1)}
-            onEnd={handleCombatEnd}
-          />
-        </div>
-      ) : (
-        <>
-          <div className="max-w-md mx-auto mb-2 flex justify-end">
-            <button
-              onClick={handleRest}
-              disabled={loading || pendingCombat}
-              className="px-3 py-2 text-sm bg-blue-700 rounded shadow disabled:opacity-60"
-            >
-              💤 휴식 (에너지 회복)
-            </button>
+            <div className="p-4 bg-gray-800 rounded-xl shadow border border-yellow-700/30">
+              <p className="text-sm text-gray-300 mb-2">종족/클래스 특성</p>
+              {traitList.length > 0 ? (
+                <div className="flex flex-col gap-2">
+                  {traitList.map((trait) => (
+                    <div key={trait!.name} className="p-2 rounded bg-gray-900 border border-yellow-700/60">
+                      <p className="font-semibold text-yellow-200">{trait!.name}</p>
+                      <p className="text-sm text-gray-300">{trait!.summary}</p>
+                      {formatTraitBonuses(trait!) && (
+                        <p className="text-xs text-yellow-300 mt-1">보너스: {formatTraitBonuses(trait!)}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400">선택한 특성이 없습니다.</p>
+              )}
+            </div>
           </div>
-          <div className="max-w-md mx-auto grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {choices.map((opt, i) => (
-              <button
-                key={i}
-                onClick={() => {
-                  if (pendingCombat) {
-                    setPendingCombat(false);
-                    setIsCombat(true);
-                  } else {
-                    callStory(opt);
-                  }
-                }}
-                disabled={loading || pendingCombat}
-                className="px-4 py-2 bg-yellow-600 rounded disabled:opacity-60"
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
+        </div>
+      </div>
     </div>
   );
 }
