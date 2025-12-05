@@ -15,6 +15,7 @@ interface StoryState {
   choices: string[];
   race: string;
   className: string;
+  traits: string[];
   dangerLevel: string
   setDangerLevel: (dl: string) => void
   setStory: (s: string) => void;
@@ -29,6 +30,7 @@ interface StoryState {
   setBuffs: (buffs: Record<string, number>) => void;
   setRace: (race: string) => void;
   setClassName: (cls: string) => void;
+  setTraits: (traits: string[]) => void;
 }
 
 export const useStoryStore = create<StoryState>()(
@@ -52,6 +54,7 @@ export const useStoryStore = create<StoryState>()(
       },
       race: '',
       className: '',
+      traits: [],
       story: "",
       choices: [],
       dangerLevel: '',
@@ -75,6 +78,7 @@ export const useStoryStore = create<StoryState>()(
       setBuffs: (buffs) => set({ buffs }),
       setRace: (race) => set({ race }),
       setClassName: (cls) => set({ className: cls }),
+      setTraits: (traits) => set({ traits }),
     }),
     {
       name: "story-store",

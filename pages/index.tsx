@@ -5,11 +5,20 @@ import React, { useState, useEffect } from "react";
 import { useStoryStore } from "@/stores/useStoryStore";
 import { CombatComponent } from "@/components/CombatComponent";
 import { Analytics } from "@vercel/analytics/next"
+import { getRaceTrait, getClassTrait, formatTraitBonuses } from "@/lib/traits";
+import type { Trait } from "@/lib/traits";
 // ▶ Buff 타입 정의
 interface Buff {
   target: "hp" | "strength" | "dexterity" | "constitution" | "energy";
   amount: number;
 }
+
+const LoadingSpinner = () => (
+  <div className="flex flex-col items-center justify-center gap-2 py-6" role="status" aria-label="스토리 생성 중">
+    <div className="w-10 h-10 border-4 border-yellow-300 border-t-transparent rounded-full animate-spin"></div>
+    <p className="text-yellow-200 text-sm">스토리를 생성하는 중입니다…</p>
+  </div>
+);
 
 // ▶ API 응답 타입 정의
 interface ResBody {
@@ -29,6 +38,8 @@ export default function TestPage() {
   const [age, setAge] = useState(18);
   const [race, setRace] = useState("");
   const [className, setClassName] = useState("");
+  const storedRace = useStoryStore((s) => s.race);
+  const storedClass = useStoryStore((s) => s.className);
   const [raceList, setRaceList] = useState<string[]>([]);
   const [classList, setClassList] = useState<string[]>([]);
 
@@ -59,6 +70,7 @@ export default function TestPage() {
   const setEnergy = useStoryStore((s) => s.setEnergy);
   const setStoreRace = useStoryStore((s) => s.setRace);
   const setStoreClass = useStoryStore((s) => s.setClassName);
+  const setStoreTraits = useStoryStore((s) => s.setTraits);
 
   // ▶ Buff 상태 (전투용)
   const buffs = useStoryStore((s) => s.buffs);
@@ -72,6 +84,7 @@ export default function TestPage() {
   const setStory = useStoryStore((s) => s.setStory);
   const choices = useStoryStore((s) => s.choices);
   const setChoices = useStoryStore((s) => s.setChoices);
+  const traits = useStoryStore((s) => s.traits);
   const [isCombat, setIsCombat] = useState(false);
   const [pendingCombat, setPendingCombat] = useState(false);
   const dangerLevel = useStoryStore((s) => s.dangerLevel);
@@ -85,6 +98,11 @@ export default function TestPage() {
   const setError = useStoryStore((s) => s.setError);
   const hasStarted = history.length > 0;
   const [gameOver, setGameOver] = useState(false);
+
+  useEffect(() => {
+    if (!race && storedRace) setRace(storedRace);
+    if (!className && storedClass) setClassName(storedClass);
+  }, [storedRace, storedClass]);
 
   const sanitizeResponse = (raw: Partial<ResBody>): ResBody => {
     const story = typeof raw.story === "string" ? raw.story.trim() : "";
@@ -137,6 +155,7 @@ export default function TestPage() {
           combatResult,
           race,
           className,
+          traits,
         }),
       });
 
@@ -237,13 +256,41 @@ export default function TestPage() {
 
   // ▶ 게임 시작
   const handleStart = () => {
+    const raceTrait = getRaceTrait(race);
+    const classTrait = getClassTrait(className);
+    const traitNames = [raceTrait?.name, classTrait?.name].filter(Boolean) as string[];
+
+    let nextHp = 100;
+    let nextEnergy = 100;
+    const updatedBuffs = { ...buffs };
+
+    const applyBonuses = (bonusTarget?: Record<string, number>) => {
+      if (!bonusTarget) return;
+      Object.entries(bonusTarget).forEach(([key, value]) => {
+        if (key === "hp") {
+          nextHp += value;
+        } else if (key === "energy") {
+          nextEnergy += value;
+        } else {
+          updatedBuffs[key] = (updatedBuffs[key] || 0) + value;
+        }
+      });
+    };
+
+    applyBonuses(raceTrait?.bonuses);
+    applyBonuses(classTrait?.bonuses);
+
+    setPlayerHp(Math.min(140, nextHp));
+    setEnergy(Math.min(140, nextEnergy));
+    setBuffs(updatedBuffs);
+    setStoreTraits(traitNames);
     setBackground(
       `당신의 이름은 ${name}이며, ${age}살 ${gender} ${race} ${className}입니다. 여정이 시작됩니다.`
     );
     setStoreRace(race);
     setStoreClass(className);
-    setEnergy(100);
-    addHistory("시작");
+    const traitLine = traitNames.length > 0 ? `특성: ${traitNames.join(', ')}` : "";
+    addHistory(`시작 ${traitLine}`.trim());
     callStory("");
   };
 
@@ -275,6 +322,7 @@ export default function TestPage() {
     setBuffs({ hp: 0, strength: 0, dexterity: 0, constitution: 0, energy: 0 });
     setRace('');
     setClassName('');
+    setStoreTraits([]);
     setBackground("");
     setStory("");
     setChoices([]);
@@ -292,13 +340,18 @@ export default function TestPage() {
       buffs: { hp: 0, strength: 0, dexterity: 0, constitution: 0, energy: 0 },
       race: '',
       className: '',
+      traits: [],
     });
   };
 
   const handleRest = () => {
     if (loading || pendingCombat || isCombat) return;
-    const recoveredHp = Math.min(120, playerHp + 8);
-    const recoveredEnergy = Math.min(120, energy + 25);
+    const raceTrait = getRaceTrait(race);
+    const classTrait = getClassTrait(className);
+    const bonusHp = (raceTrait?.bonuses.hp || 0) > 0 ? 2 : 0;
+    const bonusEnergy = Math.floor(((raceTrait?.bonuses.energy || 0) + (classTrait?.bonuses.energy || 0)) / 5);
+    const recoveredHp = Math.min(140, playerHp + 8 + bonusHp);
+    const recoveredEnergy = Math.min(140, energy + 25 + bonusEnergy);
     setPlayerHp(recoveredHp);
     setEnergy(recoveredEnergy);
     addHistory("휴식: 체력과 에너지를 회복했습니다.");
@@ -404,6 +457,9 @@ export default function TestPage() {
       : dangerLevel === "medium"
         ? "text-yellow-300"
         : "text-green-300";
+  const raceTraitInfo = getRaceTrait(race);
+  const classTraitInfo = getClassTrait(className);
+  const traitList = [raceTraitInfo, classTraitInfo].filter(Boolean) as Trait[];
 
   // ▶ 메인 게임 UI
   return (
@@ -462,6 +518,24 @@ export default function TestPage() {
           )}
         </div>
       </div>
+      <div className="max-w-md mx-auto mb-4 p-3 bg-gray-800 rounded shadow">
+        <p className="text-sm text-gray-300 mb-2">종족/클래스 특성</p>
+        {traitList.length > 0 ? (
+          <div className="flex flex-col gap-2">
+            {traitList.map((trait) => (
+              <div key={trait!.name} className="p-2 rounded bg-gray-900 border border-yellow-700/60">
+                <p className="font-semibold text-yellow-200">{trait!.name}</p>
+                <p className="text-sm text-gray-300">{trait!.summary}</p>
+                {formatTraitBonuses(trait!) && (
+                  <p className="text-xs text-yellow-300 mt-1">보너스: {formatTraitBonuses(trait!)}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-400">선택한 특성이 없습니다.</p>
+        )}
+      </div>
 
       {pendingCombat && (
         <div className="max-w-md mx-auto mb-4 p-3 bg-red-900/40 border border-red-500 rounded shadow animate-pulse">
@@ -471,11 +545,7 @@ export default function TestPage() {
       )}
 
       <div className="max-w-md mx-auto mb-6 p-4 bg-gray-800 rounded whitespace-pre-wrap">
-        {loading ? (
-          <p className="text-center text-yellow-400">로딩 중…</p>
-        ) : (
-          <p className="break-keep">{story}</p>
-        )}
+        {loading ? <LoadingSpinner /> : <p className="break-keep">{story}</p>}
         {error && <p className="text-red-500 mt-2">{error}</p>}
       </div>
 
