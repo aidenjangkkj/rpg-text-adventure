@@ -302,7 +302,8 @@ export default function TestPage() {
     setPlayerHp(recoveredHp);
     setEnergy(recoveredEnergy);
     addHistory("휴식: 체력과 에너지를 회복했습니다.");
-    setStory((prev) => `${prev}\n\n당신은 잠시 숨을 고르며 휴식을 취했습니다.`.trim());
+    const updatedStory = `${story}\n\n당신은 잠시 숨을 고르며 휴식을 취했습니다.`.trim();
+    setStory(updatedStory);
     callStory("휴식");
   };
 
