@@ -109,6 +109,8 @@ export default function TestPage() {
   const [enemyLevel, setEnemyLevel] = useState(1);
   const [pendingMessage, setPendingMessage] = useState("");
   const [historyFilter, setHistoryFilter] = useState<HistoryFilter>("all");
+  const [isHistoryOpen, setIsHistoryOpen] = useState(true);
+  const [infoTab, setInfoTab] = useState<"buffs" | "traits">("buffs");
 
   const loading = useStoryStore((s) => s.loading);
   const setLoading = useStoryStore((s) => s.setLoading);
@@ -582,37 +584,59 @@ export default function TestPage() {
                   </span>
                 )}
               </div>
-              {loading ? <LoadingSpinner /> : <p className="break-keep leading-relaxed">{story}</p>}
+              {loading ? (
+                <LoadingSpinner />
+              ) : (
+                <p className="break-keep leading-relaxed text-base md:text-lg text-yellow-100 bg-black/30 rounded-lg p-4 border border-yellow-700/20 shadow-inner">
+                  {story}
+                </p>
+              )}
               {error && <p className="text-red-500 mt-2">{error}</p>}
             </div>
 
             <div className="bg-gray-900/70 rounded-xl p-4 shadow border border-yellow-700/20">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold">최근 로그</h3>
-                <div className="flex flex-wrap gap-2 text-sm">
-                  {([
-                    { key: "all", label: "전체" },
-                    { key: "choice", label: "선택" },
-                    { key: "summary", label: "요약" },
-                    { key: "system", label: "시스템" },
-                  ] as { key: HistoryFilter; label: string }[]).map((item) => (
-                    <button
-                      key={item.key}
-                      onClick={() => setHistoryFilter(item.key)}
-                      className={`px-3 py-1 rounded border transition ${historyFilter === item.key ? "bg-yellow-600 text-black" : "bg-gray-800 text-yellow-200 border-yellow-700/40"}`}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold">최근 로그</h3>
+                  <button
+                    onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+                    className="px-3 py-1 text-xs rounded bg-gray-800 border border-yellow-700/40 hover:border-yellow-500"
+                  >
+                    {isHistoryOpen ? "숨기기" : "열기"}
+                  </button>
                 </div>
-              </div>
-              <div className="p-3 bg-black/40 rounded max-h-48 overflow-y-auto text-sm text-gray-200 space-y-1">
-                {recentHistory.length > 0 ? (
-                  recentHistory.map((line, idx) => <p key={`${line}-${idx}`}>{line}</p>)
-                ) : (
-                  <p className="text-gray-500">표시할 기록이 없습니다.</p>
+                {isHistoryOpen && (
+                  <div className="flex flex-wrap gap-2 text-sm">
+                    {([
+                      { key: "all", label: "전체" },
+                      { key: "choice", label: "선택" },
+                      { key: "summary", label: "요약" },
+                      { key: "system", label: "시스템" },
+                    ] as { key: HistoryFilter; label: string }[]).map((item) => (
+                      <button
+                        key={item.key}
+                        onClick={() => setHistoryFilter(item.key)}
+                        className={`px-3 py-1 rounded border transition ${
+                          historyFilter === item.key
+                            ? "bg-yellow-600 text-black border-yellow-600"
+                            : "bg-gray-800 text-yellow-200 border-yellow-700/40 hover:border-yellow-500"
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
+              {isHistoryOpen && (
+                <div className="p-3 bg-black/40 rounded max-h-48 overflow-y-auto text-sm text-gray-200 space-y-1 mt-2">
+                  {recentHistory.length > 0 ? (
+                    recentHistory.map((line, idx) => <p key={`${line}-${idx}`}>{line}</p>)
+                  ) : (
+                    <p className="text-gray-500">표시할 기록이 없습니다.</p>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* ▶ 전투 또는 선택지 */}
@@ -693,40 +717,61 @@ export default function TestPage() {
               </div>
             </div>
 
-            <div className="p-4 bg-gray-800 rounded-xl shadow border border-yellow-700/30">
-              <p className="text-sm text-gray-300 mb-2">버프</p>
-              <div className="flex flex-wrap gap-2">
-                {activeBuffs.length > 0 ? (
-                  activeBuffs.map(([key, v]) => (
-                    <span
-                      key={key}
-                      className="px-2 py-1 rounded-full text-xs bg-yellow-700 text-black"
-                    >
-                      {key} +{v}
-                    </span>
-                  ))
-                ) : (
-                  <span className="text-gray-400 text-sm">적용된 버프 없음</span>
-                )}
+            <div className="p-4 bg-gray-800 rounded-xl shadow border border-yellow-700/30 space-y-3">
+              <div className="flex items-center gap-2 text-sm">
+                <button
+                  onClick={() => setInfoTab("buffs")}
+                  className={`px-3 py-1 rounded-lg border transition ${
+                    infoTab === "buffs"
+                      ? "bg-yellow-600 text-black border-yellow-600"
+                      : "bg-gray-900 text-yellow-200 border-yellow-700/40 hover:border-yellow-500"
+                  }`}
+                >
+                  버프
+                </button>
+                <button
+                  onClick={() => setInfoTab("traits")}
+                  className={`px-3 py-1 rounded-lg border transition ${
+                    infoTab === "traits"
+                      ? "bg-yellow-600 text-black border-yellow-600"
+                      : "bg-gray-900 text-yellow-200 border-yellow-700/40 hover:border-yellow-500"
+                  }`}
+                >
+                  특성
+                </button>
               </div>
-            </div>
 
-            <div className="p-4 bg-gray-800 rounded-xl shadow border border-yellow-700/30">
-              <p className="text-sm text-gray-300 mb-2">종족/클래스 특성</p>
-              {traitList.length > 0 ? (
-                <div className="flex flex-col gap-2">
-                  {traitList.map((trait) => (
-                    <div key={trait!.name} className="p-2 rounded bg-gray-900 border border-yellow-700/60">
-                      <p className="font-semibold text-yellow-200">{trait!.name}</p>
-                      <p className="text-sm text-gray-300">{trait!.summary}</p>
-                      {formatTraitBonuses(trait!) && (
-                        <p className="text-xs text-yellow-300 mt-1">보너스: {formatTraitBonuses(trait!)}</p>
-                      )}
-                    </div>
-                  ))}
+              {infoTab === "buffs" ? (
+                <div className="flex flex-wrap gap-2">
+                  {activeBuffs.length > 0 ? (
+                    activeBuffs.map(([key, v]) => (
+                      <span
+                        key={key}
+                        className="px-2 py-1 rounded-full text-xs bg-yellow-700 text-black"
+                      >
+                        {key} +{v}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-gray-400 text-sm">적용된 버프 없음</span>
+                  )}
                 </div>
               ) : (
-                <p className="text-sm text-gray-400">선택한 특성이 없습니다.</p>
+                <div className="space-y-2">
+                  {traitList.length > 0 ? (
+                    traitList.map((trait) => (
+                      <div key={trait!.name} className="p-2 rounded bg-gray-900 border border-yellow-700/60">
+                        <p className="font-semibold text-yellow-200">{trait!.name}</p>
+                        <p className="text-sm text-gray-300">{trait!.summary}</p>
+                        {formatTraitBonuses(trait!) && (
+                          <p className="text-xs text-yellow-300 mt-1">보너스: {formatTraitBonuses(trait!)}</p>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-400">선택한 특성이 없습니다.</p>
+                  )}
+                </div>
               )}
             </div>
           </div>
