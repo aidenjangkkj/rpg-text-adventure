@@ -5,11 +5,31 @@ import React, { useState, useEffect } from "react";
 import { useStoryStore } from "@/stores/useStoryStore";
 import { CombatComponent } from "@/components/CombatComponent";
 import { Analytics } from "@vercel/analytics/next"
+import { getRaceTrait, getClassTrait, formatTraitBonuses } from "@/lib/traits";
+import type { Trait } from "@/lib/traits";
 // ▶ Buff 타입 정의
 interface Buff {
-  target: "hp" | "strength" | "dexterity" | "constitution";
+  target: "hp" | "strength" | "dexterity" | "constitution" | "energy";
   amount: number;
 }
+
+const CHAPTER_GOAL = 3;
+const difficultyPresets: Record<"casual" | "standard" | "hard", { label: string; enemyOffset: number; recoveryScale: number; description: string }> = {
+  casual: { label: "캐주얼", enemyOffset: -1, recoveryScale: 1.2, description: "위험도를 낮추고 회복량을 늘립니다." },
+  standard: { label: "표준", enemyOffset: 0, recoveryScale: 1, description: "기본 밸런스를 유지합니다." },
+  hard: { label: "하드", enemyOffset: 1, recoveryScale: 0.85, description: "적을 강하게 하고 회복량을 줄입니다." },
+};
+
+type HistoryFilter = "all" | "choice" | "summary" | "system";
+
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+const LoadingSpinner = () => (
+  <div className="flex flex-col items-center justify-center gap-2 py-6" role="status" aria-label="스토리 생성 중">
+    <div className="w-10 h-10 border-4 border-yellow-300 border-t-transparent rounded-full animate-spin"></div>
+    <p className="text-yellow-200 text-sm">스토리를 생성하는 중입니다…</p>
+  </div>
+);
 
 // ▶ API 응답 타입 정의
 interface ResBody {
@@ -29,6 +49,14 @@ export default function TestPage() {
   const [age, setAge] = useState(18);
   const [race, setRace] = useState("");
   const [className, setClassName] = useState("");
+  const storedRace = useStoryStore((s) => s.race);
+  const storedClass = useStoryStore((s) => s.className);
+  const difficulty = useStoryStore((s) => s.difficulty);
+  const setDifficulty = useStoryStore((s) => s.setDifficulty);
+  const chapter = useStoryStore((s) => s.chapter);
+  const setChapter = useStoryStore((s) => s.setChapter);
+  const chapterProgress = useStoryStore((s) => s.chapterProgress);
+  const setChapterProgress = useStoryStore((s) => s.setChapterProgress);
   const [raceList, setRaceList] = useState<string[]>([]);
   const [classList, setClassList] = useState<string[]>([]);
 
@@ -55,8 +83,11 @@ export default function TestPage() {
   const setPlayerHp = useStoryStore((s) => s.setPlayerHp);
   const playerLevel = useStoryStore((s) => s.playerLevel);
   const setPlayerLevel = useStoryStore((s) => s.setPlayerLevel);
+  const energy = useStoryStore((s) => s.energy);
+  const setEnergy = useStoryStore((s) => s.setEnergy);
   const setStoreRace = useStoryStore((s) => s.setRace);
   const setStoreClass = useStoryStore((s) => s.setClassName);
+  const setStoreTraits = useStoryStore((s) => s.setTraits);
 
   // ▶ Buff 상태 (전투용)
   const buffs = useStoryStore((s) => s.buffs);
@@ -70,11 +101,14 @@ export default function TestPage() {
   const setStory = useStoryStore((s) => s.setStory);
   const choices = useStoryStore((s) => s.choices);
   const setChoices = useStoryStore((s) => s.setChoices);
+  const traits = useStoryStore((s) => s.traits);
   const [isCombat, setIsCombat] = useState(false);
   const [pendingCombat, setPendingCombat] = useState(false);
   const dangerLevel = useStoryStore((s) => s.dangerLevel);
   const setDangerLevel = useStoryStore((s) => s.setDangerLevel);
   const [enemyLevel, setEnemyLevel] = useState(1);
+  const [pendingMessage, setPendingMessage] = useState("");
+  const [historyFilter, setHistoryFilter] = useState<HistoryFilter>("all");
 
   const loading = useStoryStore((s) => s.loading);
   const setLoading = useStoryStore((s) => s.setLoading);
@@ -82,6 +116,46 @@ export default function TestPage() {
   const setError = useStoryStore((s) => s.setError);
   const hasStarted = history.length > 0;
   const [gameOver, setGameOver] = useState(false);
+
+  useEffect(() => {
+    if (!race && storedRace) setRace(storedRace);
+    if (!className && storedClass) setClassName(storedClass);
+  }, [storedRace, storedClass]);
+
+  const sanitizeResponse = (raw: Partial<ResBody>): ResBody => {
+    const story = typeof raw.story === "string" ? raw.story.trim() : "";
+    const normalizedChoices = Array.isArray(raw.choices)
+      ? raw.choices.filter(
+          (choice): choice is string =>
+            typeof choice === "string" && choice.trim().length > 0
+        )
+      : [];
+    const danger = typeof raw.dangerLevel === "string" ? raw.dangerLevel : "";
+    const normalizedBuffs = Array.isArray(raw.buffs)
+      ? raw.buffs.filter(
+          (buff): buff is Buff =>
+            !!buff &&
+            typeof buff === "object" &&
+            typeof buff.target === "string" &&
+            typeof buff.amount === "number"
+        )
+      : [];
+
+    return {
+      story:
+        story ||
+        "새로운 이야기를 불러오는 데 문제가 발생했습니다. 안전하게 다음 선택으로 진행하세요.",
+      choices: normalizedChoices,
+      isCombat: Boolean(raw.isCombat),
+      dangerLevel: danger,
+      enemyLevel:
+        typeof raw.enemyLevel === "number" && Number.isFinite(raw.enemyLevel)
+          ? raw.enemyLevel
+          : playerLevel,
+      buffs: normalizedBuffs,
+      error: raw.error,
+    };
+  };
 
   // ▶ AI 호출 공통 함수
   const callStory = async (choice: string, combatResult?: "승리" | "패배") => {
@@ -99,24 +173,49 @@ export default function TestPage() {
           combatResult,
           race,
           className,
+          traits,
+          difficulty,
+          chapter,
+          chapterProgress,
         }),
       });
 
-      if (!res.ok) {
-        throw new Error(`Failed to fetch story: ${res.status}`);
+      const text = await res.text();
+      let data: ResBody;
+      try {
+        data = sanitizeResponse(JSON.parse(text));
+      } catch (err) {
+        console.error("JSON parse 실패", err, text);
+        data = sanitizeResponse({
+          story:
+            "응답을 해석할 수 없었습니다. 잠시 숨을 고르고 다시 선택해 주세요.",
+          choices: ["계속 진행"],
+          dangerLevel: "low",
+        });
       }
 
-      const data = (await res.json()) as ResBody;
-      if (data.error) throw new Error(data.error);
+      if (!res.ok) {
+        const apiError = data.error || `Failed to fetch story: ${res.status}`;
+        throw new Error(apiError);
+      }
 
-      // 기본 플로우
-      setStory(data.story ?? "");
-      setChoices(data.choices ?? []);
+      if (data.error) {
+        setError(data.error);
+      }
+
+      let nextStory = data.story ?? "";
+      const nextChoices = data.choices && data.choices.length > 0
+        ? data.choices
+        : data.isCombat
+          ? ["전투 준비"]
+          : [];
       if (data.isCombat) {
+        setPendingMessage("적이 접근합니다. 전투 태세를 갖추세요!");
         setPendingCombat(true);
         setIsCombat(false);
       } else {
         setPendingCombat(false);
+        setPendingMessage("");
         setIsCombat(false);
       }
       const dl = data.dangerLevel ?? "";
@@ -136,28 +235,54 @@ export default function TestPage() {
         default:
           adj = data.enemyLevel ?? base;
       }
-      setEnemyLevel(adj);
+      const difficultyOffset = difficultyPresets[difficulty]?.enemyOffset ?? 0;
+      setEnemyLevel(Math.max(1, adj + difficultyOffset));
 
-      // 추가 Buffs
+      let updatedHp = playerHp;
+      let updatedEnergy = energy;
+      let updatedBuffs = { ...buffs };
       if (data.buffs) {
-        let hpBonus = 0;
-        const updatedBuffs = { ...buffs };
         data.buffs.forEach((b) => {
           if (b.target === "hp") {
-            hpBonus += b.amount;
+            updatedHp += b.amount;
+          } else if (b.target === "energy") {
+            updatedEnergy += b.amount;
           } else {
             updatedBuffs[b.target] = (updatedBuffs[b.target] || 0) + b.amount;
           }
         });
-        if (hpBonus !== 0) {
-          setPlayerHp(playerHp + hpBonus);
-        }
-        setBuffs(updatedBuffs);
       }
 
-      // 히스토리 업데이트
-      addHistory(`선택: ${choice}`);
-      addHistory(`이야기: ${data.story}`);
+      let nextChapter = chapter;
+      let nextProgress = chapterProgress;
+      let chapterHistoryNote = "";
+      if (!data.isCombat) {
+        nextProgress = Math.min(CHAPTER_GOAL, chapterProgress + 1);
+        if (nextProgress >= CHAPTER_GOAL) {
+          nextChapter = chapter + 1;
+          nextProgress = 0;
+          updatedHp = clamp(updatedHp + 5, 0, 140);
+          updatedEnergy = clamp(updatedEnergy + 10, 0, 140);
+          chapterHistoryNote = `챕터 ${chapter} 완료: 잠시 휴식을 취하며 전력을 회복했습니다.`;
+          nextStory = `${nextStory}\n\n[챕터 ${chapter} 완료] 새로운 목표가 주어집니다.`.trim();
+        }
+      }
+
+      setChapter(nextChapter);
+      setChapterProgress(nextProgress);
+      setPlayerHp(clamp(updatedHp, 0, 160));
+      setEnergy(clamp(updatedEnergy, 0, 140));
+      setBuffs(updatedBuffs);
+      setStory(nextStory);
+      setChoices(nextChoices);
+
+      // 히스토리 업데이트 (길이 제한)
+      const preview = (nextStory || "").slice(0, 200);
+      addHistory(`선택: ${choice || "자동 진행"}`);
+      addHistory(`요약: ${preview}${nextStory && nextStory.length > 200 ? "..." : ""}`);
+      if (chapterHistoryNote) {
+        addHistory(chapterHistoryNote);
+      }
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       setError(msg);
@@ -168,12 +293,43 @@ export default function TestPage() {
 
   // ▶ 게임 시작
   const handleStart = () => {
+    const raceTrait = getRaceTrait(race);
+    const classTrait = getClassTrait(className);
+    const traitNames = [raceTrait?.name, classTrait?.name].filter(Boolean) as string[];
+
+    let nextHp = 100;
+    let nextEnergy = 100;
+    const updatedBuffs = { ...buffs };
+
+    const applyBonuses = (bonusTarget?: Record<string, number>) => {
+      if (!bonusTarget) return;
+      Object.entries(bonusTarget).forEach(([key, value]) => {
+        if (key === "hp") {
+          nextHp += value;
+        } else if (key === "energy") {
+          nextEnergy += value;
+        } else {
+          updatedBuffs[key] = (updatedBuffs[key] || 0) + value;
+        }
+      });
+    };
+
+    applyBonuses(raceTrait?.bonuses);
+    applyBonuses(classTrait?.bonuses);
+
+    setPlayerHp(Math.min(140, nextHp));
+    setEnergy(Math.min(140, nextEnergy));
+    setBuffs(updatedBuffs);
+    setStoreTraits(traitNames);
+    setChapter(1);
+    setChapterProgress(0);
     setBackground(
-      `당신의 이름은 ${name}이며, ${age}살 ${gender} ${race} ${className}입니다. 여정이 시작됩니다.`
+      `당신의 이름은 ${name}이며, ${age}살 ${gender} ${race} ${className}입니다. (${difficultyPresets[difficulty].label} 난이도) 여정이 시작됩니다.`
     );
     setStoreRace(race);
     setStoreClass(className);
-    addHistory("시작");
+    const traitLine = traitNames.length > 0 ? `특성: ${traitNames.join(', ')}` : "";
+    addHistory(`시작 (${difficultyPresets[difficulty].label}) ${traitLine}`.trim());
     callStory("");
   };
 
@@ -188,13 +344,24 @@ export default function TestPage() {
     }
   };
 
+  useEffect(() => {
+    if (!pendingCombat) return;
+    const timer = setTimeout(() => {
+      setIsCombat(true);
+      setPendingCombat(false);
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, [pendingCombat]);
+
   // ▶ 다시 시작
   const handleRestart = () => {
     setPlayerHp(100);
     setPlayerLevel(1);
-    setBuffs({ hp: 0, strength: 0, dexterity: 0, constitution: 0 });
+    setEnergy(100);
+    setBuffs({ hp: 0, strength: 0, dexterity: 0, constitution: 0, energy: 0 });
     setRace('');
     setClassName('');
+    setStoreTraits([]);
     setBackground("");
     setStory("");
     setChoices([]);
@@ -208,10 +375,32 @@ export default function TestPage() {
       loading: false,
       playerHp: 100,
       playerLevel: 1,
-      buffs: { hp: 0, strength: 0, dexterity: 0, constitution: 0 },
+      energy: 100,
+      buffs: { hp: 0, strength: 0, dexterity: 0, constitution: 0, energy: 0 },
       race: '',
       className: '',
+      traits: [],
+      difficulty,
+      chapter: 1,
+      chapterProgress: 0,
     });
+  };
+
+  const handleRest = () => {
+    if (loading || pendingCombat || isCombat) return;
+    const raceTrait = getRaceTrait(race);
+    const classTrait = getClassTrait(className);
+    const bonusHp = (raceTrait?.bonuses.hp || 0) > 0 ? 2 : 0;
+    const bonusEnergy = Math.floor(((raceTrait?.bonuses.energy || 0) + (classTrait?.bonuses.energy || 0)) / 5);
+    const recoveryScale = difficultyPresets[difficulty]?.recoveryScale ?? 1;
+    const recoveredHp = clamp(playerHp + Math.round((8 + bonusHp) * recoveryScale), 0, 140);
+    const recoveredEnergy = clamp(energy + Math.round((25 + bonusEnergy) * recoveryScale), 0, 140);
+    setPlayerHp(recoveredHp);
+    setEnergy(recoveredEnergy);
+    addHistory("휴식: 체력과 에너지를 회복했습니다.");
+    const updatedStory = `${story}\n\n당신은 잠시 숨을 고르며 휴식을 취했습니다.`.trim();
+    setStory(updatedStory);
+    callStory("휴식");
   };
 
   // ▶ 캐릭터 생성 화면
@@ -262,6 +451,20 @@ export default function TestPage() {
             <option key={c}>{c}</option>
           ))}
         </select>
+        <select
+          value={difficulty}
+          onChange={(e) => setDifficulty(e.target.value as "casual" | "standard" | "hard")}
+          className="mb-2 w-64 p-2 bg-gray-800 rounded"
+        >
+          {Object.entries(difficultyPresets).map(([key, value]) => (
+            <option key={key} value={key}>
+              {value.label} 난이도
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-gray-300 mb-2 w-64 text-center">
+          {difficultyPresets[difficulty]?.description}
+        </p>
         <button
           onClick={handleStart}
           className="px-4 py-2 bg-yellow-600 rounded"
@@ -288,7 +491,7 @@ export default function TestPage() {
       </div>
     );
   }
-  if (!isCombat && choices.length === 0) {
+  if (!isCombat && !loading && !pendingCombat && story && choices.length === 0) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-gray-900 to-black text-yellow-200 p-4">
         <h1 className="text-4xl mb-4">🏆 모험 완료!</h1>
@@ -303,41 +506,154 @@ export default function TestPage() {
     );
   }
 
+  const activeBuffs = Object.entries(buffs).filter(([, v]) => v > 0);
+  const energyWidth = Math.min(100, Math.round((energy / 120) * 100));
+  const dangerTone =
+    dangerLevel === "high"
+      ? "text-red-400"
+      : dangerLevel === "medium"
+        ? "text-yellow-300"
+        : "text-green-300";
+  const raceTraitInfo = getRaceTrait(race);
+  const classTraitInfo = getClassTrait(className);
+  const traitList = [raceTraitInfo, classTraitInfo].filter(Boolean) as Trait[];
+  const filteredHistory = history.filter((line) => {
+    if (historyFilter === "choice") return line.startsWith("선택:");
+    if (historyFilter === "summary") return line.startsWith("요약:");
+    if (historyFilter === "system") return !line.startsWith("선택:") && !line.startsWith("요약:");
+    return true;
+  });
+  const recentHistory = filteredHistory.slice(-12);
+
   // ▶ 메인 게임 UI
   return (
-    
+
     <div className="min-h-screen p-4 bg-gradient-to-b from-gray-900 to-black text-yellow-200">
     <Analytics/>
       <h1 className="text-3xl mb-6 text-center">모험 진행 중</h1>
 
       {/* ▶ 플레이어 상태 */}
-      <div className="max-w-md mx-auto flex justify-between mb-4">
-        <span>HP: {playerHp}</span>
-        <span>Lv: {playerLevel}</span>
+      <div className="max-w-md mx-auto grid gap-3 mb-4">
+        <div className="p-3 bg-gray-800 rounded flex justify-between items-center shadow">
+          <div>
+            <p className="text-sm text-gray-300">HP</p>
+            <p className="text-xl font-semibold">{playerHp}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-sm text-gray-300">Lv</p>
+            <p className="text-xl font-semibold">{playerLevel}</p>
+          </div>
+        </div>
+        <div className="p-3 bg-gray-800 rounded shadow">
+          <div className="flex justify-between text-sm text-gray-300">
+            <span>에너지</span>
+            <span>{energy} / 120</span>
+          </div>
+          <div className="w-full h-2 bg-gray-700 rounded mt-2">
+            <div
+              className="h-2 bg-green-500 rounded"
+              style={{ width: `${energyWidth}%` }}
+            ></div>
+          </div>
+        </div>
       </div>
 
-      {/* ▶ 위험도 & 스토리 */}
-      <div className="max-w-md mx-auto mb-4 p-2 bg-gray-800 rounded">
-        <p>
-          버프:&nbsp;
-          {Object.entries(buffs)
-            .filter(([, v]) => v > 0)
-            .map(([key, v]) => `${key}+${v}`)
-            .join(", ") || "없음"}
-        </p>
+      {/* ▶ 위험도 & 버프 */}
+      <div className="max-w-md mx-auto grid gap-3 mb-3">
+        <div className="p-3 bg-gray-800 rounded shadow">
+          <p className="text-sm text-gray-300 mb-1">위험도</p>
+          <p className={`font-semibold ${dangerTone}`}>
+            {dangerLevel || "알 수 없음"}
+          </p>
+        </div>
+        <div className="p-3 bg-gray-800 rounded shadow">
+          <div className="flex justify-between items-center mb-1">
+            <p className="text-sm text-gray-300">챕터 {chapter}</p>
+            <span className="text-xs px-2 py-1 rounded bg-yellow-700/50 text-yellow-100">
+              {difficultyPresets[difficulty]?.label}
+            </span>
+          </div>
+          <p className="text-xs text-gray-400 mb-2">목표까지 {Math.max(0, CHAPTER_GOAL - chapterProgress)} 단계 남음</p>
+          <div className="w-full h-2 bg-gray-700 rounded">
+            <div
+              className="h-2 bg-yellow-500 rounded"
+              style={{ width: `${Math.min(100, Math.round((chapterProgress / CHAPTER_GOAL) * 100))}%` }}
+            ></div>
+          </div>
+        </div>
+      </div>
+      <div className="max-w-md mx-auto mb-4 p-3 bg-gray-800 rounded shadow">
+        <p className="text-sm text-gray-300 mb-2">버프</p>
+        <div className="flex flex-wrap gap-2">
+          {activeBuffs.length > 0 ? (
+            activeBuffs.map(([key, v]) => (
+              <span
+                key={key}
+                className="px-2 py-1 rounded-full text-xs bg-yellow-700 text-black"
+              >
+                {key} +{v}
+              </span>
+            ))
+          ) : (
+            <span className="text-gray-400 text-sm">적용된 버프 없음</span>
+          )}
+        </div>
+      </div>
+      <div className="max-w-md mx-auto mb-4 p-3 bg-gray-800 rounded shadow">
+        <p className="text-sm text-gray-300 mb-2">종족/클래스 특성</p>
+        {traitList.length > 0 ? (
+          <div className="flex flex-col gap-2">
+            {traitList.map((trait) => (
+              <div key={trait!.name} className="p-2 rounded bg-gray-900 border border-yellow-700/60">
+                <p className="font-semibold text-yellow-200">{trait!.name}</p>
+                <p className="text-sm text-gray-300">{trait!.summary}</p>
+                {formatTraitBonuses(trait!) && (
+                  <p className="text-xs text-yellow-300 mt-1">보너스: {formatTraitBonuses(trait!)}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-400">선택한 특성이 없습니다.</p>
+        )}
       </div>
 
-      <div className="max-w-md mx-auto mb-4 p-2 bg-gray-800 rounded">
-        <p>위험도: {dangerLevel}</p>
-      </div>
+      {pendingCombat && (
+        <div className="max-w-md mx-auto mb-4 p-3 bg-red-900/40 border border-red-500 rounded shadow animate-pulse">
+          <p className="font-semibold text-red-200">{pendingMessage || "전투 준비 중"}</p>
+          <p className="text-sm text-red-100 mt-1">잠시 후 전투 화면으로 전환됩니다.</p>
+        </div>
+      )}
 
       <div className="max-w-md mx-auto mb-6 p-4 bg-gray-800 rounded whitespace-pre-wrap">
-        {loading ? (
-          <p className="text-center text-yellow-400">로딩 중…</p>
-        ) : (
-          <p className="break-keep">{story}</p>
-        )}
+        {loading ? <LoadingSpinner /> : <p className="break-keep">{story}</p>}
         {error && <p className="text-red-500 mt-2">{error}</p>}
+      </div>
+
+      <div className="max-w-md mx-auto mb-4">
+        <div className="flex flex-wrap gap-2 mb-2 text-sm">
+          {([
+            { key: "all", label: "전체" },
+            { key: "choice", label: "선택" },
+            { key: "summary", label: "요약" },
+            { key: "system", label: "시스템" },
+          ] as { key: HistoryFilter; label: string }[]).map((item) => (
+            <button
+              key={item.key}
+              onClick={() => setHistoryFilter(item.key)}
+              className={`px-3 py-1 rounded border ${historyFilter === item.key ? "bg-yellow-600 text-black" : "bg-gray-800 text-yellow-200 border-yellow-700/40"}`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+        <div className="p-3 bg-gray-900/70 rounded max-h-48 overflow-y-auto text-sm text-gray-200 space-y-1">
+          {recentHistory.length > 0 ? (
+            recentHistory.map((line, idx) => <p key={`${line}-${idx}`}>{line}</p>)
+          ) : (
+            <p className="text-gray-500">표시할 기록이 없습니다.</p>
+          )}
+        </div>
       </div>
 
       {/* ▶ 전투 또는 선택지 */}
@@ -350,30 +666,44 @@ export default function TestPage() {
             enemyLevel={enemyLevel}
             playerLevel={playerLevel}
             buffStats={buffs}
+            dangerLevel={dangerLevel}
+            energy={energy}
+            setEnergy={setEnergy}
             onVictory={() => setPlayerLevel(playerLevel + 1)}
             onEnd={handleCombatEnd}
           />
         </div>
       ) : (
-        <div className="max-w-md mx-auto grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {choices.map((opt, i) => (
+        <>
+          <div className="max-w-md mx-auto mb-2 flex justify-end">
             <button
-              key={i}
-              onClick={() => {
-                if (pendingCombat) {
-                  setPendingCombat(false);
-                  setIsCombat(true);
-                } else {
-                  callStory(opt);
-                }
-              }}
-              disabled={loading}
-              className="px-4 py-2 bg-yellow-600 rounded"
+              onClick={handleRest}
+              disabled={loading || pendingCombat}
+              className="px-3 py-2 text-sm bg-blue-700 rounded shadow disabled:opacity-60"
             >
-              {opt}
+              💤 휴식 (에너지 회복)
             </button>
-          ))}
-        </div>
+          </div>
+          <div className="max-w-md mx-auto grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {choices.map((opt, i) => (
+              <button
+                key={i}
+                onClick={() => {
+                  if (pendingCombat) {
+                    setPendingCombat(false);
+                    setIsCombat(true);
+                  } else {
+                    callStory(opt);
+                  }
+                }}
+                disabled={loading || pendingCombat}
+                className="px-4 py-2 bg-yellow-600 rounded disabled:opacity-60"
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
