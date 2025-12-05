@@ -16,7 +16,7 @@ interface ResBody {
   isCombat?: boolean
   dangerLevel?: string
   enemyLevel?: number
-  buffs?: { target: 'hp'|'strength'|'dexterity'|'constitution'; amount: number }[]
+  buffs?: { target: 'hp'|'strength'|'dexterity'|'constitution'|'energy'; amount: number }[]
   error?: string
 }
 
@@ -49,7 +49,7 @@ export default async function handler(
   "isCombat": true|false,
   "dangerLevel": "low"|"medium"|"high",
   "enemyLevel": number,
-  "buffs": [ { "target": "hp"|"strength"|"dexterity"|"constitution", "amount": number } ]
+  "buffs": [ { "target": "hp"|"strength"|"dexterity"|"constitution"|"energy", "amount": number } ]
 }
 `
 
@@ -69,11 +69,42 @@ ${combatLine}
     if (!match) throw new Error('AI 응답에 JSON 포맷이 없습니다.')
 
     const parsed = JSON.parse(match[0]) as Omit<ResBody, 'error'>
-    return res.status(200).json(parsed)
+    const safeStory = typeof parsed.story === 'string' && parsed.story.trim().length > 0
+      ? parsed.story
+      : '새로운 이야기를 불러오는 데 실패했습니다. 호흡을 가다듬고 다시 시도하세요.'
+    const safeChoices = Array.isArray(parsed.choices)
+      ? parsed.choices.filter((c): c is string => typeof c === 'string' && c.trim().length > 0)
+      : []
+    const safeBuffs = Array.isArray(parsed.buffs)
+      ? parsed.buffs.filter(
+          (buff): buff is NonNullable<ResBody['buffs']>[number] =>
+            !!buff && typeof buff.target === 'string' && typeof buff.amount === 'number'
+        )
+      : []
+
+    return res.status(200).json({
+      story: safeStory,
+      choices: safeChoices,
+      isCombat: Boolean(parsed.isCombat),
+      dangerLevel: typeof parsed.dangerLevel === 'string' ? parsed.dangerLevel : 'low',
+      enemyLevel:
+        typeof parsed.enemyLevel === 'number' && Number.isFinite(parsed.enemyLevel)
+          ? parsed.enemyLevel
+          : 1,
+      buffs: safeBuffs,
+    })
   } catch (err: unknown) {
     console.error(err);
     // unknown 에러를 안전하게 처리
     const message = err instanceof Error ? err.message : String(err);
-    res.status(500).json({ error: message });
+    res.status(200).json({
+      story: '이야기를 가져오는 동안 문제가 발생했습니다. 안전한 경로로 계속 진행하세요.',
+      choices: ['숨 고르기', '조심스럽게 계속 이동'],
+      isCombat: false,
+      dangerLevel: 'low',
+      enemyLevel: 1,
+      buffs: [],
+      error: message,
+    });
 }
 }
