@@ -13,6 +13,17 @@ interface Buff {
   amount: number;
 }
 
+const CHAPTER_GOAL = 3;
+const difficultyPresets: Record<"casual" | "standard" | "hard", { label: string; enemyOffset: number; recoveryScale: number; description: string }> = {
+  casual: { label: "캐주얼", enemyOffset: -1, recoveryScale: 1.2, description: "위험도를 낮추고 회복량을 늘립니다." },
+  standard: { label: "표준", enemyOffset: 0, recoveryScale: 1, description: "기본 밸런스를 유지합니다." },
+  hard: { label: "하드", enemyOffset: 1, recoveryScale: 0.85, description: "적을 강하게 하고 회복량을 줄입니다." },
+};
+
+type HistoryFilter = "all" | "choice" | "summary" | "system";
+
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
 const LoadingSpinner = () => (
   <div className="flex flex-col items-center justify-center gap-2 py-6" role="status" aria-label="스토리 생성 중">
     <div className="w-10 h-10 border-4 border-yellow-300 border-t-transparent rounded-full animate-spin"></div>
@@ -40,6 +51,12 @@ export default function TestPage() {
   const [className, setClassName] = useState("");
   const storedRace = useStoryStore((s) => s.race);
   const storedClass = useStoryStore((s) => s.className);
+  const difficulty = useStoryStore((s) => s.difficulty);
+  const setDifficulty = useStoryStore((s) => s.setDifficulty);
+  const chapter = useStoryStore((s) => s.chapter);
+  const setChapter = useStoryStore((s) => s.setChapter);
+  const chapterProgress = useStoryStore((s) => s.chapterProgress);
+  const setChapterProgress = useStoryStore((s) => s.setChapterProgress);
   const [raceList, setRaceList] = useState<string[]>([]);
   const [classList, setClassList] = useState<string[]>([]);
 
@@ -91,6 +108,7 @@ export default function TestPage() {
   const setDangerLevel = useStoryStore((s) => s.setDangerLevel);
   const [enemyLevel, setEnemyLevel] = useState(1);
   const [pendingMessage, setPendingMessage] = useState("");
+  const [historyFilter, setHistoryFilter] = useState<HistoryFilter>("all");
 
   const loading = useStoryStore((s) => s.loading);
   const setLoading = useStoryStore((s) => s.setLoading);
@@ -102,7 +120,7 @@ export default function TestPage() {
   useEffect(() => {
     if (!race && storedRace) setRace(storedRace);
     if (!className && storedClass) setClassName(storedClass);
-  }, [storedRace, storedClass]);
+  }, [storedRace, storedClass, race, className, setRace, setClassName]);
 
   const sanitizeResponse = (raw: Partial<ResBody>): ResBody => {
     const story = typeof raw.story === "string" ? raw.story.trim() : "";
@@ -156,6 +174,9 @@ export default function TestPage() {
           race,
           className,
           traits,
+          difficulty,
+          chapter,
+          chapterProgress,
         }),
       });
 
@@ -182,14 +203,12 @@ export default function TestPage() {
         setError(data.error);
       }
 
-      // 기본 플로우
-      setStory(data.story ?? "");
+      let nextStory = data.story ?? "";
       const nextChoices = data.choices && data.choices.length > 0
         ? data.choices
         : data.isCombat
           ? ["전투 준비"]
           : [];
-      setChoices(nextChoices);
       if (data.isCombat) {
         setPendingMessage("적이 접근합니다. 전투 태세를 갖추세요!");
         setPendingCombat(true);
@@ -216,36 +235,54 @@ export default function TestPage() {
         default:
           adj = data.enemyLevel ?? base;
       }
-      setEnemyLevel(adj);
+      const difficultyOffset = difficultyPresets[difficulty]?.enemyOffset ?? 0;
+      setEnemyLevel(Math.max(1, adj + difficultyOffset));
 
-      // 추가 Buffs
+      let updatedHp = playerHp;
+      let updatedEnergy = energy;
+      const updatedBuffs = { ...buffs };
       if (data.buffs) {
-        let hpBonus = 0;
-        let energyBonus = 0;
-        const updatedBuffs = { ...buffs };
         data.buffs.forEach((b) => {
           if (b.target === "hp") {
-            hpBonus += b.amount;
+            updatedHp += b.amount;
           } else if (b.target === "energy") {
-            energyBonus += b.amount;
+            updatedEnergy += b.amount;
           } else {
             updatedBuffs[b.target] = (updatedBuffs[b.target] || 0) + b.amount;
           }
         });
-        if (hpBonus !== 0) {
-          setPlayerHp(playerHp + hpBonus);
-        }
-        if (energyBonus !== 0) {
-          const capped = Math.min(120, Math.max(0, energy + energyBonus));
-          setEnergy(capped);
-        }
-        setBuffs(updatedBuffs);
       }
 
+      let nextChapter = chapter;
+      let nextProgress = chapterProgress;
+      let chapterHistoryNote = "";
+      if (!data.isCombat) {
+        nextProgress = Math.min(CHAPTER_GOAL, chapterProgress + 1);
+        if (nextProgress >= CHAPTER_GOAL) {
+          nextChapter = chapter + 1;
+          nextProgress = 0;
+          updatedHp = clamp(updatedHp + 5, 0, 140);
+          updatedEnergy = clamp(updatedEnergy + 10, 0, 140);
+          chapterHistoryNote = `챕터 ${chapter} 완료: 잠시 휴식을 취하며 전력을 회복했습니다.`;
+          nextStory = `${nextStory}\n\n[챕터 ${chapter} 완료] 새로운 목표가 주어집니다.`.trim();
+        }
+      }
+
+      setChapter(nextChapter);
+      setChapterProgress(nextProgress);
+      setPlayerHp(clamp(updatedHp, 0, 160));
+      setEnergy(clamp(updatedEnergy, 0, 140));
+      setBuffs(updatedBuffs);
+      setStory(nextStory);
+      setChoices(nextChoices);
+
       // 히스토리 업데이트 (길이 제한)
-      const preview = (data.story || "").slice(0, 200);
+      const preview = (nextStory || "").slice(0, 200);
       addHistory(`선택: ${choice || "자동 진행"}`);
-      addHistory(`요약: ${preview}${data.story && data.story.length > 200 ? "..." : ""}`);
+      addHistory(`요약: ${preview}${nextStory && nextStory.length > 200 ? "..." : ""}`);
+      if (chapterHistoryNote) {
+        addHistory(chapterHistoryNote);
+      }
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       setError(msg);
@@ -284,13 +321,15 @@ export default function TestPage() {
     setEnergy(Math.min(140, nextEnergy));
     setBuffs(updatedBuffs);
     setStoreTraits(traitNames);
+    setChapter(1);
+    setChapterProgress(0);
     setBackground(
-      `당신의 이름은 ${name}이며, ${age}살 ${gender} ${race} ${className}입니다. 여정이 시작됩니다.`
+      `당신의 이름은 ${name}이며, ${age}살 ${gender} ${race} ${className}입니다. (${difficultyPresets[difficulty].label} 난이도) 여정이 시작됩니다.`
     );
     setStoreRace(race);
     setStoreClass(className);
     const traitLine = traitNames.length > 0 ? `특성: ${traitNames.join(', ')}` : "";
-    addHistory(`시작 ${traitLine}`.trim());
+    addHistory(`시작 (${difficultyPresets[difficulty].label}) ${traitLine}`.trim());
     callStory("");
   };
 
@@ -341,6 +380,9 @@ export default function TestPage() {
       race: '',
       className: '',
       traits: [],
+      difficulty,
+      chapter: 1,
+      chapterProgress: 0,
     });
   };
 
@@ -350,8 +392,9 @@ export default function TestPage() {
     const classTrait = getClassTrait(className);
     const bonusHp = (raceTrait?.bonuses.hp || 0) > 0 ? 2 : 0;
     const bonusEnergy = Math.floor(((raceTrait?.bonuses.energy || 0) + (classTrait?.bonuses.energy || 0)) / 5);
-    const recoveredHp = Math.min(140, playerHp + 8 + bonusHp);
-    const recoveredEnergy = Math.min(140, energy + 25 + bonusEnergy);
+    const recoveryScale = difficultyPresets[difficulty]?.recoveryScale ?? 1;
+    const recoveredHp = clamp(playerHp + Math.round((8 + bonusHp) * recoveryScale), 0, 140);
+    const recoveredEnergy = clamp(energy + Math.round((25 + bonusEnergy) * recoveryScale), 0, 140);
     setPlayerHp(recoveredHp);
     setEnergy(recoveredEnergy);
     addHistory("휴식: 체력과 에너지를 회복했습니다.");
@@ -408,6 +451,20 @@ export default function TestPage() {
             <option key={c}>{c}</option>
           ))}
         </select>
+        <select
+          value={difficulty}
+          onChange={(e) => setDifficulty(e.target.value as "casual" | "standard" | "hard")}
+          className="mb-2 w-64 p-2 bg-gray-800 rounded"
+        >
+          {Object.entries(difficultyPresets).map(([key, value]) => (
+            <option key={key} value={key}>
+              {value.label} 난이도
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-gray-300 mb-2 w-64 text-center">
+          {difficultyPresets[difficulty]?.description}
+        </p>
         <button
           onClick={handleStart}
           className="px-4 py-2 bg-yellow-600 rounded"
@@ -434,7 +491,7 @@ export default function TestPage() {
       </div>
     );
   }
-  if (!isCombat && choices.length === 0) {
+  if (!isCombat && !loading && !pendingCombat && story && choices.length === 0) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-gray-900 to-black text-yellow-200 p-4">
         <h1 className="text-4xl mb-4">🏆 모험 완료!</h1>
@@ -460,6 +517,13 @@ export default function TestPage() {
   const raceTraitInfo = getRaceTrait(race);
   const classTraitInfo = getClassTrait(className);
   const traitList = [raceTraitInfo, classTraitInfo].filter(Boolean) as Trait[];
+  const filteredHistory = history.filter((line) => {
+    if (historyFilter === "choice") return line.startsWith("선택:");
+    if (historyFilter === "summary") return line.startsWith("요약:");
+    if (historyFilter === "system") return !line.startsWith("선택:") && !line.startsWith("요약:");
+    return true;
+  });
+  const recentHistory = filteredHistory.slice(-12);
 
   // ▶ 메인 게임 UI
   return (
@@ -495,11 +559,28 @@ export default function TestPage() {
       </div>
 
       {/* ▶ 위험도 & 버프 */}
-      <div className="max-w-md mx-auto mb-3 p-3 bg-gray-800 rounded shadow">
-        <p className="text-sm text-gray-300 mb-1">위험도</p>
-        <p className={`font-semibold ${dangerTone}`}>
-          {dangerLevel || "알 수 없음"}
-        </p>
+      <div className="max-w-md mx-auto grid gap-3 mb-3">
+        <div className="p-3 bg-gray-800 rounded shadow">
+          <p className="text-sm text-gray-300 mb-1">위험도</p>
+          <p className={`font-semibold ${dangerTone}`}>
+            {dangerLevel || "알 수 없음"}
+          </p>
+        </div>
+        <div className="p-3 bg-gray-800 rounded shadow">
+          <div className="flex justify-between items-center mb-1">
+            <p className="text-sm text-gray-300">챕터 {chapter}</p>
+            <span className="text-xs px-2 py-1 rounded bg-yellow-700/50 text-yellow-100">
+              {difficultyPresets[difficulty]?.label}
+            </span>
+          </div>
+          <p className="text-xs text-gray-400 mb-2">목표까지 {Math.max(0, CHAPTER_GOAL - chapterProgress)} 단계 남음</p>
+          <div className="w-full h-2 bg-gray-700 rounded">
+            <div
+              className="h-2 bg-yellow-500 rounded"
+              style={{ width: `${Math.min(100, Math.round((chapterProgress / CHAPTER_GOAL) * 100))}%` }}
+            ></div>
+          </div>
+        </div>
       </div>
       <div className="max-w-md mx-auto mb-4 p-3 bg-gray-800 rounded shadow">
         <p className="text-sm text-gray-300 mb-2">버프</p>
@@ -547,6 +628,32 @@ export default function TestPage() {
       <div className="max-w-md mx-auto mb-6 p-4 bg-gray-800 rounded whitespace-pre-wrap">
         {loading ? <LoadingSpinner /> : <p className="break-keep">{story}</p>}
         {error && <p className="text-red-500 mt-2">{error}</p>}
+      </div>
+
+      <div className="max-w-md mx-auto mb-4">
+        <div className="flex flex-wrap gap-2 mb-2 text-sm">
+          {([
+            { key: "all", label: "전체" },
+            { key: "choice", label: "선택" },
+            { key: "summary", label: "요약" },
+            { key: "system", label: "시스템" },
+          ] as { key: HistoryFilter; label: string }[]).map((item) => (
+            <button
+              key={item.key}
+              onClick={() => setHistoryFilter(item.key)}
+              className={`px-3 py-1 rounded border ${historyFilter === item.key ? "bg-yellow-600 text-black" : "bg-gray-800 text-yellow-200 border-yellow-700/40"}`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+        <div className="p-3 bg-gray-900/70 rounded max-h-48 overflow-y-auto text-sm text-gray-200 space-y-1">
+          {recentHistory.length > 0 ? (
+            recentHistory.map((line, idx) => <p key={`${line}-${idx}`}>{line}</p>)
+          ) : (
+            <p className="text-gray-500">표시할 기록이 없습니다.</p>
+          )}
+        </div>
       </div>
 
       {/* ▶ 전투 또는 선택지 */}

@@ -10,6 +10,9 @@ interface ReqBody {
   race?: string
   className?: string
   traits?: string[]
+  difficulty?: 'casual' | 'standard' | 'hard'
+  chapter?: number
+  chapterProgress?: number
 }
 interface ResBody {
   story?: string
@@ -25,16 +28,22 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<ResBody>
 ) {
-  const { background, history, choice, combatResult, race, className } =
+  const { background, history, choice, combatResult, race, className, difficulty, chapter, chapterProgress } =
     req.body as ReqBody
 
   const traitLine = Array.isArray(req.body.traits) && req.body.traits.length > 0
     ? `보유 특성: ${req.body.traits.join(', ')}\n`
     : ''
   const characterLine = race && className ? `캐릭터는 ${race} ${className}입니다. ${traitLine}` : traitLine
+  const progressionLine = typeof chapter === 'number'
+    ? `현재 진행: 챕터 ${chapter} (진행도 ${chapterProgress ?? 0}/3)\n`
+    : ''
+  const difficultyLine = difficulty
+    ? `선택된 난이도: ${difficulty}. 난이도에 맞춘 위험도/보상/회복 밸런스를 유지하세요.\n`
+    : ''
   const basePrompt = background?.trim()
-    ? `${background.trim()}\n${characterLine}\n\n이전 대화:\n${history.join('\n')}`
-    : `${characterLine}\n이전 대화:\n${history.join('\n')}`
+    ? `${background.trim()}\n${characterLine}${progressionLine}${difficultyLine}\n이전 대화:\n${history.join('\n')}`
+    : `${characterLine}${progressionLine}${difficultyLine}\n이전 대화:\n${history.join('\n')}`
   const combatLine = combatResult
    ? `전투 결과: ${combatResult}\n`
    : "";

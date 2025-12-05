@@ -16,8 +16,11 @@ interface StoryState {
   race: string;
   className: string;
   traits: string[];
-  dangerLevel: string
-  setDangerLevel: (dl: string) => void
+  difficulty: 'casual' | 'standard' | 'hard';
+  chapter: number;
+  chapterProgress: number;
+  dangerLevel: string;
+  setDangerLevel: (dl: string) => void;
   setStory: (s: string) => void;
   setChoices: (c: string[]) => void;
   addHistory: (line: string) => void;
@@ -31,6 +34,9 @@ interface StoryState {
   setRace: (race: string) => void;
   setClassName: (cls: string) => void;
   setTraits: (traits: string[]) => void;
+  setDifficulty: (difficulty: 'casual' | 'standard' | 'hard') => void;
+  setChapter: (chapter: number) => void;
+  setChapterProgress: (value: number) => void;
 }
 
 export const useStoryStore = create<StoryState>()(
@@ -55,6 +61,9 @@ export const useStoryStore = create<StoryState>()(
       race: '',
       className: '',
       traits: [],
+      difficulty: 'standard',
+      chapter: 1,
+      chapterProgress: 0,
       story: "",
       choices: [],
       dangerLevel: '',
@@ -79,6 +88,9 @@ export const useStoryStore = create<StoryState>()(
       setRace: (race) => set({ race }),
       setClassName: (cls) => set({ className: cls }),
       setTraits: (traits) => set({ traits }),
+      setDifficulty: (difficulty) => set({ difficulty }),
+      setChapter: (chapter) => set({ chapter }),
+      setChapterProgress: (value) => set({ chapterProgress: value }),
     }),
     {
       name: "story-store",
