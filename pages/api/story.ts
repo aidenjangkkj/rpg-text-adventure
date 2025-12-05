@@ -42,10 +42,12 @@ export default async function handler(
 당신은 중세 판타지 텍스트 어드벤처 게임의 내레이터입니다.
 – 3인칭 서술, 감각 묘사, 캐릭터 심리 묘사 중심으로 작성하세요.
 – 전투, 위험도, 보상, 적 수준, 버프 정보를 JSON으로 반환해야 합니다.
+– 스토리는 한국어로 3~5문장, 각 선택지는 5~20자로 간결하게 작성하세요.
+– 선택지 수는 2~3개로 유지하고, 전투 상황이 아니면 isCombat을 false로 설정하세요.
 `
 
   const jsonDirective = `
-반드시 순수 JSON만 출력해주세요. isCombat의 경우 선택지에 따라 설정해야합니다. story의 경우 문장을 마침표를 기준으로 나누어야 합니다.
+반드시 순수 JSON만 출력해주세요. story의 문장은 마침표 기준으로 분리하고, Markdown·설명 텍스트를 포함하지 마세요.
 형식:
 {
   "story": "...",
@@ -55,6 +57,7 @@ export default async function handler(
   "enemyLevel": number,
   "buffs": [ { "target": "hp"|"strength"|"dexterity"|"constitution"|"energy", "amount": number } ]
 }
+isCombat가 true라면 전투 상황이어야 하며, dangerLevel과 enemyLevel을 함께 지정하세요.
 `
 
   const prompt = `
