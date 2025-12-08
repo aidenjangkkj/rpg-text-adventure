@@ -103,6 +103,9 @@ export default function TestPage() {
   const setChoices = useStoryStore((s) => s.setChoices);
   const traits = useStoryStore((s) => s.traits);
   const [isCombat, setIsCombat] = useState(false);
+  const [combatModalOpen, setCombatModalOpen] = useState(false);
+  const [combatCountdown, setCombatCountdown] = useState<number | null>(null);
+  const [lastCombatResult, setLastCombatResult] = useState<"승리" | "패배" | null>(null);
   const [pendingCombat, setPendingCombat] = useState(false);
   const dangerLevel = useStoryStore((s) => s.dangerLevel);
   const setDangerLevel = useStoryStore((s) => s.setDangerLevel);
@@ -337,7 +340,9 @@ export default function TestPage() {
 
   // ▶ 전투 종료 콜백
   const handleCombatEnd = (result: "승리" | "패배") => {
+    setLastCombatResult(result);
     setIsCombat(false);
+    setCombatCountdown(5);
     if (result === "패배") {
       setGameOver(true);
     } else {
@@ -351,9 +356,33 @@ export default function TestPage() {
     const timer = setTimeout(() => {
       setIsCombat(true);
       setPendingCombat(false);
+      setCombatModalOpen(true);
+      setCombatCountdown(null);
+      setLastCombatResult(null);
     }, 1200);
     return () => clearTimeout(timer);
   }, [pendingCombat]);
+
+  useEffect(() => {
+    if (!isCombat) return;
+    setCombatModalOpen(true);
+    setCombatCountdown(null);
+    setLastCombatResult(null);
+  }, [isCombat]);
+
+  useEffect(() => {
+    if (combatCountdown === null) return;
+    if (combatCountdown <= 0) {
+      setCombatModalOpen(false);
+      setCombatCountdown(null);
+      setLastCombatResult(null);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setCombatCountdown((prev) => (prev ?? 1) - 1);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [combatCountdown]);
 
   // ▶ 다시 시작
   const handleRestart = () => {
@@ -370,6 +399,9 @@ export default function TestPage() {
     setDangerLevel("");
     setEnemyLevel(1);
     setIsCombat(false);
+    setCombatModalOpen(false);
+    setCombatCountdown(null);
+    setLastCombatResult(null);
     setGameOver(false);
     useStoryStore.setState({
       history: [],
@@ -528,6 +560,7 @@ export default function TestPage() {
     return true;
   });
   const recentHistory = filteredHistory.slice(-12);
+  const combatLog = history.slice(-10);
 
   // ▶ 메인 게임 UI
   return (
@@ -642,19 +675,10 @@ export default function TestPage() {
             {/* ▶ 전투 또는 선택지 */}
             {isCombat ? (
               <div className="w-full flex justify-center">
-                <CombatComponent
-                  key={enemyLevel}
-                  playerHp={playerHp}
-                  setPlayerHp={setPlayerHp}
-                  enemyLevel={enemyLevel}
-                  playerLevel={playerLevel}
-                  buffStats={buffs}
-                  dangerLevel={dangerLevel}
-                  energy={energy}
-                  setEnergy={setEnergy}
-                  onVictory={() => setPlayerLevel(playerLevel + 1)}
-                  onEnd={handleCombatEnd}
-                />
+                <div className="w-full max-w-md bg-gray-800 rounded-lg border border-yellow-700/40 text-center p-4 shadow">
+                  <p className="text-lg font-semibold text-yellow-100">전투 모드 활성화</p>
+                  <p className="text-sm text-gray-300 mt-1">전투, 주사위, 로그가 모달로 표시됩니다.</p>
+                </div>
               </div>
             ) : (
               <div className="bg-gray-800 rounded-xl p-4 shadow border border-yellow-700/30 space-y-3">
@@ -777,6 +801,115 @@ export default function TestPage() {
           </div>
         </div>
       </div>
+
+      {combatModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4 py-6">
+          <div className="relative w-full max-w-5xl bg-gray-900 rounded-2xl border border-yellow-700/60 shadow-2xl p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+              <div>
+                <p className="text-xs tracking-[0.2em] text-yellow-200/70">COMBAT MODE</p>
+                <h3 className="text-2xl font-bold text-yellow-100">전투 화면이 활성화되었습니다</h3>
+                {pendingMessage && (
+                  <p className="text-sm text-gray-300 mt-1">{pendingMessage}</p>
+                )}
+                {lastCombatResult && (
+                  <p
+                    className={`text-sm mt-1 ${
+                      lastCombatResult === "승리" ? "text-green-300" : "text-red-300"
+                    }`}
+                  >
+                    전투 {lastCombatResult}! {combatCountdown ? `${combatCountdown}초 후 모달이 닫힙니다.` : ""}
+                  </p>
+                )}
+                {!lastCombatResult && combatCountdown !== null && (
+                  <p className="text-sm text-gray-300 mt-1">{combatCountdown}초 후 모달이 닫힙니다.</p>
+                )}
+              </div>
+              <div className="flex flex-col gap-2 items-end text-xs text-yellow-100">
+                <span className="px-3 py-2 rounded-lg bg-yellow-700/20 border border-yellow-700/40 shadow">
+                  전투 종료 후 5초 카운트가 끝나면 자동으로 닫힙니다.
+                </span>
+                {!isCombat && (
+                  <button
+                    onClick={() => setCombatModalOpen(false)}
+                    className="px-3 py-1 rounded-md bg-gray-800 border border-yellow-700/40 hover:border-yellow-500 text-yellow-100"
+                  >
+                    지금 닫기
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div
+                className={`relative p-3 bg-gray-800 rounded-xl border border-yellow-700/40 shadow-inner ${
+                  isCombat ? "" : "opacity-70"
+                }`}
+              >
+                <CombatComponent
+                  key={enemyLevel}
+                  playerHp={playerHp}
+                  setPlayerHp={setPlayerHp}
+                  enemyLevel={enemyLevel}
+                  playerLevel={playerLevel}
+                  buffStats={buffs}
+                  dangerLevel={dangerLevel}
+                  energy={energy}
+                  setEnergy={setEnergy}
+                  onVictory={() => setPlayerLevel(playerLevel + 1)}
+                  onEnd={handleCombatEnd}
+                />
+                {!isCombat && lastCombatResult && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-xl">
+                    <p
+                      className={`text-xl font-bold ${
+                        lastCombatResult === "승리" ? "text-green-300" : "text-red-300"
+                      }`}
+                    >
+                      전투 {lastCombatResult}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <div className="p-3 bg-gray-800 rounded-xl border border-yellow-700/40 shadow-inner">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="font-semibold text-yellow-100">주사위 화면</p>
+                    <span className="text-xs text-gray-300">자동 굴림</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className={`text-5xl ${isCombat ? "animate-spin" : "animate-pulse"}`}>🎲</div>
+                    <p className="text-sm text-gray-200 leading-relaxed">
+                      공격과 방어 주사위가 자동으로 굴려지며, 전투 진행 상황을 실시간으로 반영합니다.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-gray-800 rounded-xl border border-yellow-700/40 shadow-inner">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="font-semibold text-yellow-100">전투 로그</p>
+                    {combatCountdown !== null && (
+                      <span className="text-xs text-yellow-200">{combatCountdown}초 후 닫힘</span>
+                    )}
+                  </div>
+                  <div className="space-y-1 max-h-52 overflow-y-auto text-sm text-gray-100">
+                    {combatLog.length > 0 ? (
+                      combatLog.map((line, idx) => (
+                        <p key={`${line}-${idx}`} className="border-b border-yellow-700/20 pb-1 last:border-none last:pb-0">
+                          {line}
+                        </p>
+                      ))
+                    ) : (
+                      <p className="text-gray-400 text-sm">표시할 로그가 없습니다.</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
