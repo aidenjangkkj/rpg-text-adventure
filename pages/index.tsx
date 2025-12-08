@@ -803,36 +803,37 @@ export default function TestPage() {
       </div>
 
       {combatModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4 py-6">
-          <div className="relative w-full max-w-5xl bg-gray-900 rounded-2xl border border-yellow-700/60 shadow-2xl p-4 sm:p-6">
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-slate-950/90 via-fuchsia-950/70 to-slate-950/90 backdrop-blur-md px-4 py-6">
+          <div className="relative w-full max-w-5xl retro-frame rounded-3xl p-4 sm:p-6">
+            <div className="absolute inset-0 pointer-events-none opacity-40 mix-blend-screen bg-[radial-gradient(circle_at_20%_20%,rgba(56,189,248,0.2),transparent_35%),radial-gradient(circle_at_80%_60%,rgba(244,114,182,0.2),transparent_35%)]" />
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4 relative">
               <div>
-                <p className="text-xs tracking-[0.2em] text-yellow-200/70">COMBAT MODE</p>
-                <h3 className="text-2xl font-bold text-yellow-100">전투 화면이 활성화되었습니다</h3>
+                <p className="text-[11px] tracking-[0.3em] text-pink-200/80 font-tech">COMBAT MODE</p>
+                <h3 className="text-2xl font-bold text-cyan-50 neon-title font-arcade">전투 화면이 활성화되었습니다</h3>
                 {pendingMessage && (
-                  <p className="text-sm text-gray-300 mt-1">{pendingMessage}</p>
+                  <p className="text-sm text-cyan-100 mt-1 font-tech">{pendingMessage}</p>
                 )}
                 {lastCombatResult && (
                   <p
-                    className={`text-sm mt-1 ${
-                      lastCombatResult === "승리" ? "text-green-300" : "text-red-300"
+                    className={`text-sm mt-1 font-tech ${
+                      lastCombatResult === "승리" ? "text-emerald-300" : "text-rose-300"
                     }`}
                   >
                     전투 {lastCombatResult}! {combatCountdown ? `${combatCountdown}초 후 모달이 닫힙니다.` : ""}
                   </p>
                 )}
                 {!lastCombatResult && combatCountdown !== null && (
-                  <p className="text-sm text-gray-300 mt-1">{combatCountdown}초 후 모달이 닫힙니다.</p>
+                  <p className="text-sm text-cyan-100 mt-1 font-tech">{combatCountdown}초 후 모달이 닫힙니다.</p>
                 )}
               </div>
-              <div className="flex flex-col gap-2 items-end text-xs text-yellow-100">
-                <span className="px-3 py-2 rounded-lg bg-yellow-700/20 border border-yellow-700/40 shadow">
+              <div className="flex flex-col gap-2 items-end text-[11px] text-cyan-50 font-tech">
+                <span className="px-3 py-2 rounded-lg bg-slate-900/70 border border-cyan-400/30 shadow-lg shadow-sky-900/30">
                   전투 종료 후 5초 카운트가 끝나면 자동으로 닫힙니다.
                 </span>
                 {!isCombat && (
                   <button
                     onClick={() => setCombatModalOpen(false)}
-                    className="px-3 py-1 rounded-md bg-gray-800 border border-yellow-700/40 hover:border-yellow-500 text-yellow-100"
+                    className="px-3 py-2 rounded-md bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 border border-cyan-300/30 text-cyan-100 hover:border-pink-200/50 transition"
                   >
                     지금 닫기
                   </button>
@@ -840,30 +841,33 @@ export default function TestPage() {
               </div>
             </div>
 
-            <div className="grid gap-4 lg:grid-cols-2">
+            <div className="grid gap-4 lg:grid-cols-2 relative">
               <div
-                className={`relative p-3 bg-gray-800 rounded-xl border border-yellow-700/40 shadow-inner ${
+                className={`relative rounded-2xl border border-cyan-400/20 shadow-inner bg-slate-900/70 ${
                   isCombat ? "" : "opacity-70"
                 }`}
               >
-                <CombatComponent
-                  key={enemyLevel}
-                  playerHp={playerHp}
-                  setPlayerHp={setPlayerHp}
-                  enemyLevel={enemyLevel}
-                  playerLevel={playerLevel}
-                  buffStats={buffs}
-                  dangerLevel={dangerLevel}
-                  energy={energy}
-                  setEnergy={setEnergy}
-                  onVictory={() => setPlayerLevel(playerLevel + 1)}
-                  onEnd={handleCombatEnd}
-                />
+                <div className="absolute inset-x-4 top-3 h-px bg-gradient-to-r from-transparent via-cyan-300/60 to-transparent" />
+                <div className="p-4">
+                  <CombatComponent
+                    key={enemyLevel}
+                    playerHp={playerHp}
+                    setPlayerHp={setPlayerHp}
+                    enemyLevel={enemyLevel}
+                    playerLevel={playerLevel}
+                    buffStats={buffs}
+                    dangerLevel={dangerLevel}
+                    energy={energy}
+                    setEnergy={setEnergy}
+                    onVictory={() => setPlayerLevel(playerLevel + 1)}
+                    onEnd={handleCombatEnd}
+                  />
+                </div>
                 {!isCombat && lastCombatResult && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-xl">
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-2xl">
                     <p
-                      className={`text-xl font-bold ${
-                        lastCombatResult === "승리" ? "text-green-300" : "text-red-300"
+                      className={`text-xl font-bold font-arcade ${
+                        lastCombatResult === "승리" ? "text-emerald-300" : "text-rose-300"
                       }`}
                     >
                       전투 {lastCombatResult}
@@ -873,35 +877,39 @@ export default function TestPage() {
               </div>
 
               <div className="space-y-3">
-                <div className="p-3 bg-gray-800 rounded-xl border border-yellow-700/40 shadow-inner">
+                <div className="relative p-4 bg-slate-900/70 rounded-2xl border border-cyan-400/20 shadow-inner overflow-hidden">
                   <div className="flex items-center justify-between mb-2">
-                    <p className="font-semibold text-yellow-100">주사위 화면</p>
-                    <span className="text-xs text-gray-300">자동 굴림</span>
+                    <p className="font-semibold text-cyan-100 font-tech">주사위 화면</p>
+                    <span className="text-[11px] text-cyan-200">자동 굴림</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className={`text-5xl ${isCombat ? "animate-spin" : "animate-pulse"}`}>🎲</div>
-                    <p className="text-sm text-gray-200 leading-relaxed">
+                    <div className={`relative w-16 h-16 rounded-full dice-orb flex items-center justify-center ${isCombat ? "animate-spin" : "animate-pulse"}`}>
+                      <span className="text-3xl">🎲</span>
+                      <span className="scanline-overlay" aria-hidden></span>
+                    </div>
+                    <p className="text-sm text-cyan-50 leading-relaxed font-tech">
                       공격과 방어 주사위가 자동으로 굴려지며, 전투 진행 상황을 실시간으로 반영합니다.
                     </p>
                   </div>
+                  <div className="absolute inset-0 opacity-30 pointer-events-none bg-[radial-gradient(circle_at_20%_20%,rgba(59,130,246,0.2),transparent_40%)]" />
                 </div>
 
-                <div className="p-3 bg-gray-800 rounded-xl border border-yellow-700/40 shadow-inner">
+                <div className="p-4 bg-slate-900/70 rounded-2xl border border-cyan-400/20 shadow-inner">
                   <div className="flex items-center justify-between mb-2">
-                    <p className="font-semibold text-yellow-100">전투 로그</p>
+                    <p className="font-semibold text-cyan-100 font-tech">전투 로그</p>
                     {combatCountdown !== null && (
-                      <span className="text-xs text-yellow-200">{combatCountdown}초 후 닫힘</span>
+                      <span className="text-[11px] text-pink-200">{combatCountdown}초 후 닫힘</span>
                     )}
                   </div>
-                  <div className="space-y-1 max-h-52 overflow-y-auto text-sm text-gray-100">
+                  <div className="space-y-1 max-h-52 overflow-y-auto text-sm text-cyan-50">
                     {combatLog.length > 0 ? (
                       combatLog.map((line, idx) => (
-                        <p key={`${line}-${idx}`} className="border-b border-yellow-700/20 pb-1 last:border-none last:pb-0">
+                        <p key={`${line}-${idx}`} className="border-b border-cyan-400/10 pb-1 last:border-none last:pb-0 font-tech">
                           {line}
                         </p>
                       ))
                     ) : (
-                      <p className="text-gray-400 text-sm">표시할 로그가 없습니다.</p>
+                      <p className="text-cyan-200/60 text-sm">표시할 로그가 없습니다.</p>
                     )}
                   </div>
                 </div>
