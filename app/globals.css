@@ -1,5 +1,7 @@
 @import "tailwindcss";
-@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Rajdhani:wght@600&family=Diphylleia&display=swap");
+@import url(
+  "https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Rajdhani:wght@600&family=Diphylleia&display=swap"
+);
 
 @font-face {
   font-family: "DungGeunMo";
@@ -100,13 +102,13 @@
 }
 
 .font-arcade {
-  font-family: "Press Start 2P", "DungGeunMo", "Do Hyeon", "Rajdhani", system-ui,
+  font-family: "Press Start 2P", "DungGeunMo", "Diphylleia", "Rajdhani", system-ui,
     -apple-system, "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
   letter-spacing: 0.04em;
 }
 
 .font-tech {
-  font-family: "Rajdhani", "Do Hyeon", "DungGeunMo", system-ui, -apple-system,
+  font-family: "Rajdhani", "Diphylleia", "DungGeunMo", system-ui, -apple-system,
     "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
   letter-spacing: 0.06em;
 }
