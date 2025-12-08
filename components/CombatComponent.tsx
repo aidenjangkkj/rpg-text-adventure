@@ -69,6 +69,8 @@ export function CombatComponent({
   const [isRolling, setIsRolling] = useState(false);
   const [playerHit, setPlayerHit] = useState(false);
   const [enemyHit, setEnemyHit] = useState(false);
+  const [playerDamage, setPlayerDamage] = useState<number | null>(null);
+  const [enemyDamage, setEnemyDamage] = useState<number | null>(null);
   const [combatNotice, setCombatNotice] = useState<string>("");
   const attackCost = 10;
 
@@ -84,8 +86,12 @@ export function CombatComponent({
       const dmg = Math.max(1, rollDice(8) + strMod);
       setEnemyHp((h) => {
         const newHp = h - dmg;
+        setEnemyDamage(dmg);
         setEnemyHit(true);
-        setTimeout(() => setEnemyHit(false), 300);
+        setTimeout(() => {
+          setEnemyHit(false);
+          setEnemyDamage(null);
+        }, 800);
         if (newHp <= 0) {
           onVictory();
           onEnd("승리");
@@ -102,8 +108,12 @@ export function CombatComponent({
       const dmg = Math.max(1, rollDice(enemyDmgDie) - conMod);
       const newHp = playerHp - dmg;
       setPlayerHp(newHp);
+      setPlayerDamage(dmg);
       setPlayerHit(true);
-      setTimeout(() => setPlayerHit(false), 300);
+      setTimeout(() => {
+        setPlayerHit(false);
+        setPlayerDamage(null);
+      }, 800);
       if (newHp <= 0) {
         onEnd("패배");
       }
@@ -140,12 +150,34 @@ export function CombatComponent({
     <div className="w-full max-w-md p-4 bg-gray-800 rounded-lg shadow-inner mx-auto">
       <h2 className="text-2xl font-bold mb-4 text-red-400">⚔️ 전투!</h2>
       <div className="flex justify-between mb-4 text-gray-200">
-        <p className={playerHit ? "text-red-400 animate-pulse" : ""}>
-          💖 {playerHp > 0 ? playerHp : 0}
-        </p>
-        <p className={enemyHit ? "text-red-400 animate-pulse" : ""}>
-          ☠️ {enemyHp > 0 ? enemyHp : 0}
-        </p>
+        <div className="relative flex items-center">
+          <p
+            className={`transition-colors duration-200 ${
+              playerHit ? "text-red-300 hit-flash hit-shake" : ""
+            }`}
+          >
+            💖 {playerHp > 0 ? playerHp : 0}
+          </p>
+          {playerDamage !== null && (
+            <span className="absolute -top-5 left-0 text-xs text-red-200 drop-shadow damage-float">
+              -{playerDamage}
+            </span>
+          )}
+        </div>
+        <div className="relative flex items-center justify-end">
+          <p
+            className={`transition-colors duration-200 ${
+              enemyHit ? "text-red-300 hit-flash hit-shake" : ""
+            }`}
+          >
+            ☠️ {enemyHp > 0 ? enemyHp : 0}
+          </p>
+          {enemyDamage !== null && (
+            <span className="absolute -top-5 right-0 text-xs text-orange-200 drop-shadow damage-float">
+              -{enemyDamage}
+            </span>
+          )}
+        </div>
       </div>
       <div className="mb-4 flex justify-between text-sm text-gray-200">
         <span>
