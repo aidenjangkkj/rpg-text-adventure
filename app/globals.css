@@ -1,5 +1,16 @@
 @import "tailwindcss";
-@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Rajdhani:wght@600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Rajdhani:wght@600&family=Do+Hyeon&display=swap");
+
+@font-face {
+  font-family: "DungGeunMo";
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2307-2/fonts/DungGeunMo.woff2")
+      format("woff2"),
+    url("https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2307-2/fonts/DungGeunMo.woff")
+      format("woff");
+}
 
 @keyframes hitFlash {
   0% {
@@ -89,12 +100,14 @@
 }
 
 .font-arcade {
-  font-family: "Press Start 2P", "Rajdhani", system-ui, -apple-system, sans-serif;
+  font-family: "Press Start 2P", "DungGeunMo", "Do Hyeon", "Rajdhani", system-ui,
+    -apple-system, "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
   letter-spacing: 0.04em;
 }
 
 .font-tech {
-  font-family: "Rajdhani", system-ui, -apple-system, sans-serif;
+  font-family: "Rajdhani", "Do Hyeon", "DungGeunMo", system-ui, -apple-system,
+    "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
   letter-spacing: 0.06em;
 }
 
