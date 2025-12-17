@@ -21,9 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${diphylleia.variable} ${diphylleia.className} antialiased`}
-      >
+      <body>
         {children}
       </body>
     </html>
