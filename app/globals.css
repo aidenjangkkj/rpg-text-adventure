@@ -1,8 +1,9 @@
 @import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Diphylleia&display=swap');
 :root {
-  font-family: var(--font-diphylleia), "Diphylleia", "Noto Sans KR", system-ui, -apple-system,
-    sans-serif;
+  font-family: "Diphylleia", serif;
+  font-weight: 400;
+  font-style: normal;
 }
 
 @keyframes hitFlash {
