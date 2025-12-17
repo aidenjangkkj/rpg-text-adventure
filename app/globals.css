@@ -1,7 +1,7 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Diphylleia&display=swap');
 :root {
-  font-family: "Diphylleia", serif;
+  font-family: var(--font-diphylleia), "Diphylleia", "Noto Sans KR", system-ui, -apple-system,
+    "Apple SD Gothic Neo", sans-serif;
   font-weight: 400;
   font-style: normal;
 }

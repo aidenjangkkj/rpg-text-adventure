@@ -1,6 +1,5 @@
 // pages/test.tsx
 "use client";
-import "../app/globals.css";
 import React, { useState, useEffect } from "react";
 import { useStoryStore } from "@/stores/useStoryStore";
 import { CombatComponent } from "@/components/CombatComponent";
