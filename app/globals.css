@@ -1,5 +1,5 @@
 @import "tailwindcss";
-
+@import url('https://fonts.googleapis.com/css2?family=Diphylleia&display=swap');
 :root {
   font-family: "Diphylleia", serif;
   font-weight: 400;
