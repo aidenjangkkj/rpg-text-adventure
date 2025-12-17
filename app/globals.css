@@ -1,17 +1,8 @@
 @import "tailwindcss";
-@import url(
-  "https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Rajdhani:wght@600&family=Diphylleia&display=swap"
-);
 
-@font-face {
-  font-family: "DungGeunMo";
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-  src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2307-2/fonts/DungGeunMo.woff2")
-      format("woff2"),
-    url("https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2307-2/fonts/DungGeunMo.woff")
-      format("woff");
+:root {
+  font-family: var(--font-diphylleia), "Diphylleia", "Noto Sans KR", system-ui, -apple-system,
+    sans-serif;
 }
 
 @keyframes hitFlash {
@@ -102,14 +93,14 @@
 }
 
 .font-arcade {
-  font-family: "Press Start 2P", "DungGeunMo", "Diphylleia", "Rajdhani", system-ui,
-    -apple-system, "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+  font-family: var(--font-diphylleia), "Diphylleia", "Noto Sans KR", system-ui, -apple-system,
+    "Apple SD Gothic Neo", sans-serif;
   letter-spacing: 0.04em;
 }
 
 .font-tech {
-  font-family: "Rajdhani", "Diphylleia", "DungGeunMo", system-ui, -apple-system,
-    "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+  font-family: var(--font-diphylleia), "Diphylleia", "Noto Sans KR", system-ui, -apple-system,
+    "Apple SD Gothic Neo", sans-serif;
   letter-spacing: 0.06em;
 }
 
