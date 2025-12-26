@@ -136,6 +136,8 @@ ${combatLine}
 선택: ${choice || '없음'}
 다음 이야기를 JSON 형식으로 생성해 주세요.
 `
+    }
+  }
 
   const promptOverBudget = prompt.length - PROMPT_LIMIT
   if (promptOverBudget > 0) {
