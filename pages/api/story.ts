@@ -1,18 +1,6 @@
 // pages/api/story.ts
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { generateWithGemini } from '@/lib/gemini'
-
-interface ReqBody {
-  background?: string
-  history: string[]
-  choice: string
-  combatResult: string
-  race?: string
-  className?: string
-  traits?: string[]// pages/api/story.ts
-import type { NextApiRequest, NextApiResponse } from 'next'
-import { generateWithGemini } from '@/lib/gemini'
-
 interface ReqBody {
   background?: string
   history: string[]
