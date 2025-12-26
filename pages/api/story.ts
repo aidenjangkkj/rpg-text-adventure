@@ -31,6 +31,14 @@ export default async function handler(
   const { background, history, choice, combatResult, race, className, difficulty, chapter, chapterProgress } =
     req.body as ReqBody
 
+  const truncateTail = (text: string, maxLength: number) =>
+    text.length > maxLength ? text.slice(text.length - maxLength) : text
+
+  const BACKGROUND_LIMIT = 800
+  const HISTORY_LIMIT = 1800
+  const MIN_HISTORY_LIMIT = 400
+  const PROMPT_LIMIT = 4000
+
   const traitLine = Array.isArray(req.body.traits) && req.body.traits.length > 0
     ? `보유 특성: ${req.body.traits.join(', ')}\n`
     : ''
@@ -41,12 +49,42 @@ export default async function handler(
   const difficultyLine = difficulty
     ? `선택된 난이도: ${difficulty}. 난이도에 맞춘 위험도/보상/회복 밸런스를 유지하세요.\n`
     : ''
-  const basePrompt = background?.trim()
-    ? `${background.trim()}\n${characterLine}${progressionLine}${difficultyLine}\n이전 대화:\n${history.join('\n')}`
-    : `${characterLine}${progressionLine}${difficultyLine}\n이전 대화:\n${history.join('\n')}`
   const combatLine = combatResult
-   ? `전투 결과: ${combatResult}\n`
-   : "";
+    ? `전투 결과: ${combatResult}\n`
+    : "";
+
+  const limitHistory = (entries: string[], maxLength: number) => {
+    const acc: string[] = []
+    let total = 0
+
+    for (let i = entries.length - 1; i >= 0; i -= 1) {
+      const line = entries[i]
+      const nextLength = total + line.length + (acc.length ? 1 : 0)
+      if (nextLength > maxLength) break
+
+      acc.push(line)
+      total = nextLength
+    }
+
+    return acc.reverse()
+  }
+
+  const trimmedBackground = background?.trim() ? truncateTail(background.trim(), BACKGROUND_LIMIT) : ''
+
+  const buildBase = (historyLimit: number) => {
+    const trimmedHistory = limitHistory(Array.isArray(history) ? history : [], historyLimit)
+    const historyNote = Array.isArray(history) && history.length > trimmedHistory.length
+      ? '(최근 대화 일부만 포함됨 — 누락된 맥락은 직전 흐름을 유지하며 자연스럽게 이어 쓰세요.)\n'
+      : ''
+
+    const basePrompt = trimmedBackground
+      ? `${trimmedBackground}\n${characterLine}${progressionLine}${difficultyLine}\n${historyNote}이전 대화:\n${trimmedHistory.join('\n')}`
+      : `${characterLine}${progressionLine}${difficultyLine}\n${historyNote}이전 대화:\n${trimmedHistory.join('\n')}`
+
+    return { basePrompt, trimmedHistory, historyNote }
+  }
+
+  let { basePrompt, trimmedHistory, historyNote } = buildBase(HISTORY_LIMIT)
   const worldFrame = [
     '세계관 기본 틀:',
     '– 대륙 엘도라: 수도 루멘(인간 왕국), 카르둠(드워프 산악 요새), 아스트랄리움(비밀스러운 마법도시), 황혼늪(언데드와 저주가 도사리는 늪지).',
@@ -87,7 +125,7 @@ export default async function handler(
 isCombat가 true라면 전투 상황이어야 하며, dangerLevel과 enemyLevel을 함께 지정하세요.
 `
 
-  const prompt = `
+  let prompt = `
 ${styleGuide}
 ${jsonDirective}
 
@@ -98,6 +136,33 @@ ${combatLine}
 선택: ${choice || '없음'}
 다음 이야기를 JSON 형식으로 생성해 주세요.
 `
+
+  const promptOverBudget = prompt.length - PROMPT_LIMIT
+  if (promptOverBudget > 0) {
+    const adjustedHistoryLimit = Math.max(
+      MIN_HISTORY_LIMIT,
+      HISTORY_LIMIT - promptOverBudget - 200,
+    )
+
+    if (adjustedHistoryLimit < HISTORY_LIMIT) {
+      const rebuilt = buildBase(adjustedHistoryLimit)
+      basePrompt = rebuilt.basePrompt
+      trimmedHistory = rebuilt.trimmedHistory
+      historyNote = rebuilt.historyNote
+
+      prompt = `
+${styleGuide}
+${jsonDirective}
+
+${worldFrame}
+
+${basePrompt}
+${combatLine}
+선택: ${choice || '없음'}
+다음 이야기를 JSON 형식으로 생성해 주세요.
+`
+    }
+  }
 
   try {
     const raw = await generateWithGemini(prompt)
