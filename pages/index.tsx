@@ -110,6 +110,7 @@ export default function TestPage() {
   const setDangerLevel = useStoryStore((s) => s.setDangerLevel);
   const [enemyLevel, setEnemyLevel] = useState(1);
   const [pendingMessage, setPendingMessage] = useState("");
+  const [combatNarrative, setCombatNarrative] = useState("");
   const [historyFilter, setHistoryFilter] = useState<HistoryFilter>("all");
   const [isHistoryOpen, setIsHistoryOpen] = useState(true);
   const [infoTab, setInfoTab] = useState<"buffs" | "traits">("buffs");
@@ -208,18 +209,16 @@ export default function TestPage() {
       }
 
       let nextStory = data.story ?? "";
-      const nextChoices = data.choices && data.choices.length > 0
-        ? data.choices
-        : data.isCombat
-          ? ["전투 준비"]
-          : [];
+      const nextChoices = data.isCombat ? [] : data.choices || [];
       if (data.isCombat) {
         setPendingMessage("적이 접근합니다. 전투 태세를 갖추세요!");
+        setCombatNarrative(nextStory);
         setPendingCombat(true);
         setIsCombat(false);
       } else {
         setPendingCombat(false);
         setPendingMessage("");
+        setCombatNarrative("");
         setIsCombat(false);
       }
       const dl = data.dangerLevel ?? "";
@@ -811,6 +810,11 @@ export default function TestPage() {
                 <h3 className="text-2xl font-bold text-cyan-50 neon-title font-arcade">전투 화면이 활성화되었습니다</h3>
                 {pendingMessage && (
                   <p className="text-sm text-cyan-100 mt-1 font-tech">{pendingMessage}</p>
+                )}
+                {combatNarrative && (
+                  <p className="mt-2 text-sm text-cyan-50 leading-relaxed bg-black/30 border border-cyan-400/20 rounded-lg p-3">
+                    {combatNarrative}
+                  </p>
                 )}
                 {lastCombatResult && (
                   <p
