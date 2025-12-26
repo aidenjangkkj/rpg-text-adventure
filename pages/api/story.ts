@@ -39,6 +39,20 @@ export default async function handler(
   const MIN_HISTORY_LIMIT = 400
   const PROMPT_LIMIT = 4000
 
+  const traitLine = Array.isArray(req.body.traits) && req.body.traits.length > 0
+    ? `보유 특성: ${req.body.traits.join(', ')}\n`
+    : ''
+  const characterLine = race && className ? `캐릭터는 ${race} ${className}입니다. ${traitLine}` : traitLine
+  const progressionLine = typeof chapter === 'number'
+    ? `현재 진행: 챕터 ${chapter} (진행도 ${chapterProgress ?? 0}/3)\n`
+    : ''
+  const difficultyLine = difficulty
+    ? `선택된 난이도: ${difficulty}. 난이도에 맞춘 위험도/보상/회복 밸런스를 유지하세요.\n`
+    : ''
+  const combatLine = combatResult
+    ? `전투 결과: ${combatResult}\n`
+    : "";
+
   const limitHistory = (entries: string[], maxLength: number) => {
     const acc: string[] = []
     let total = 0
@@ -60,7 +74,7 @@ export default async function handler(
   const buildBase = (historyLimit: number) => {
     const trimmedHistory = limitHistory(Array.isArray(history) ? history : [], historyLimit)
     const historyNote = Array.isArray(history) && history.length > trimmedHistory.length
-      ? '(최근 대화 일부만 포함됨)\n'
+      ? '(최근 대화 일부만 포함됨 — 누락된 맥락은 직전 흐름을 유지하며 자연스럽게 이어 쓰세요.)\n'
       : ''
 
     const basePrompt = trimmedBackground
@@ -71,20 +85,6 @@ export default async function handler(
   }
 
   let { basePrompt, trimmedHistory, historyNote } = buildBase(HISTORY_LIMIT)
-
-  const traitLine = Array.isArray(req.body.traits) && req.body.traits.length > 0
-    ? `보유 특성: ${req.body.traits.join(', ')}\n`
-    : ''
-  const characterLine = race && className ? `캐릭터는 ${race} ${className}입니다. ${traitLine}` : traitLine
-  const progressionLine = typeof chapter === 'number'
-    ? `현재 진행: 챕터 ${chapter} (진행도 ${chapterProgress ?? 0}/3)\n`
-    : ''
-  const difficultyLine = difficulty
-    ? `선택된 난이도: ${difficulty}. 난이도에 맞춘 위험도/보상/회복 밸런스를 유지하세요.\n`
-    : ''
-  const combatLine = combatResult
-   ? `전투 결과: ${combatResult}\n`
-   : "";
   const worldFrame = [
     '세계관 기본 틀:',
     '– 대륙 엘도라: 수도 루멘(인간 왕국), 카르둠(드워프 산악 요새), 아스트랄리움(비밀스러운 마법도시), 황혼늪(언데드와 저주가 도사리는 늪지).',
