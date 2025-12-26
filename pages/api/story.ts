@@ -166,6 +166,33 @@ ${combatLine}
     }
   }
 
+  const promptOverBudget = prompt.length - PROMPT_LIMIT
+  if (promptOverBudget > 0) {
+    const adjustedHistoryLimit = Math.max(
+      MIN_HISTORY_LIMIT,
+      HISTORY_LIMIT - promptOverBudget - 200,
+    )
+
+    if (adjustedHistoryLimit < HISTORY_LIMIT) {
+      const rebuilt = buildBase(adjustedHistoryLimit)
+      basePrompt = rebuilt.basePrompt
+      trimmedHistory = rebuilt.trimmedHistory
+      historyNote = rebuilt.historyNote
+
+      prompt = `
+${styleGuide}
+${jsonDirective}
+
+${worldFrame}
+
+${basePrompt}
+${combatLine}
+선택: ${choice || '없음'}
+다음 이야기를 JSON 형식으로 생성해 주세요.
+`
+    }
+  }
+
   try {
     const raw = await generateWithGemini(prompt)
     const match = raw.match(/\{[\s\S]*\}/)
