@@ -47,6 +47,17 @@ export default async function handler(
   const combatLine = combatResult
    ? `전투 결과: ${combatResult}\n`
    : "";
+  const worldFrame = `
+세계관 기본 틀:
+– 대륙 엘도라: 수도 루멘(인간 왕국), 카르둠(드워프 산악 요새), 아스트랄리움(비밀스러운 마법도시), 황혼늪(언데드와 저주가 도사리는 늪지).
+– 중심 갈등: 쇠락한 봉인을 틈타 암흑 군주가 부활하려 하며, 봉인을 강화하려면 고대 성유물 조각 세 개(심장의 보석, 서리의 인장, 별빛 두루마리)를 모아야 합니다.
+– 주요 세력: 여명 기사단(왕국의 수호자), 서리망치 연맹(드워프 공학·무기 전문가), 청람 서클(마법사 집단), 그림자 길드(정보와 잠입 전문가), 변방의 수인 부족들.
+
+진행 구조 틀:
+– 이야기 전체는 3장 구조(각 장당 3단계)로 이어집니다. chapter는 현재 장(1~3), chapterProgress는 단계(0~3)입니다.
+– 단계 정의: 0=장 도입·목표 설정, 1=탐색·정보 수집, 2=위기·전투·결정, 3=장 마무리·보상·다음 장 예고.
+– 각 응답에서 chapter와 chapterProgress에 맞춰 그 단계의 목적과 긴장을 명확히 보여주세요. 단계가 완료되면 다음 단계로 자연스럽게 연결하거나, chapterProgress가 3이면 다음 chapter의 도입을 준비하세요.
+– 성유물 조각 회수나 봉인 강화 등 장기 목표를 상기시키고, 주요 세력 중 최소 하나와의 관계 변화를 지속적으로 반영하세요.`
   const styleGuide = `
 당신은 중세 판타지 텍스트 어드벤처 게임의 내레이터입니다.
 – 3인칭 서술, 감각 묘사, 캐릭터 심리 묘사 중심으로 작성하세요.
@@ -73,6 +84,8 @@ isCombat가 true라면 전투 상황이어야 하며, dangerLevel과 enemyLevel�
   const prompt = `
 ${styleGuide}
 ${jsonDirective}
+
+${worldFrame}
 
 ${basePrompt}
 ${combatLine}
