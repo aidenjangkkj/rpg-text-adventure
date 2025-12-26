@@ -105,10 +105,10 @@ export default async function handler(
 – 서사는 소설처럼 흐르도록 장면을 그리고, 짧은 대사나 은유·리듬감을 섞어 생동감을 살리세요.
 – 문장이 단조롭지 않게 호흡을 조절하고, 장면 전환 시 한두 단어로 여운을 남기세요.
 – 전투가 연속될 때는 짧은 이동·회복·긴장감 완화 묘사를 넣어 어색함 없이 다음 전투나 선택지로 이어가세요.
-– 새 전투에 진입할 때는 isCombat을 곧바로 true로 만들지 말고, 준비·경고·포지셔닝 등 1~2문장의 서사를 먼저 제공해 플레이어가 읽고 선택한 뒤 전투로 넘어가게 하세요. 실제 전투 페이즈에만 isCombat을 true로 설정하세요.
+– 새 전투로 진입할 때는 isCombat을 true로 설정하고, 1~2문장의 전투 진입 서사를 story에 담아 전투 화면에서 바로 보여줄 수 있게 하세요. 이때 choices는 빈 배열로 두어 선택지를 제시하지 않습니다.
 – 전투, 위험도, 보상, 적 수준, 버프 정보를 JSON으로 반환해야 합니다.
-– 스토리는 한국어로 3~5문장, 각 선택지는 5~20자로 간결하게 작성하세요.
-– 선택지 수는 2~3개로 유지하고, 전투 상황이 아니면 isCombat을 false로 설정하세요.
+– 스토리는 한국어로 3~5문장, 전투가 아닐 때만 선택지를 2~3개(각 5~20자) 제시하세요. 전투 상황(isCombat=true)에서는 choices를 빈 배열로 두세요.
+– 전투 상황이 아니면 isCombat을 false로 설정하세요.
 `
 
   const jsonDirective = `
@@ -122,7 +122,7 @@ export default async function handler(
   "enemyLevel": number,
   "buffs": [ { "target": "hp"|"strength"|"dexterity"|"constitution"|"energy", "amount": number } ]
 }
-isCombat가 true라면 전투 상황이어야 하며, dangerLevel과 enemyLevel을 함께 지정하세요.
+isCombat가 true라면 전투 상황이어야 하며, dangerLevel과 enemyLevel을 함께 지정하세요. 전투 상황에서는 choices를 빈 배열로 두세요.
 `
 
   let prompt = `
@@ -136,6 +136,8 @@ ${combatLine}
 선택: ${choice || '없음'}
 다음 이야기를 JSON 형식으로 생성해 주세요.
 `
+    }
+  }
 
   const promptOverBudget = prompt.length - PROMPT_LIMIT
   if (promptOverBudget > 0) {
@@ -173,9 +175,11 @@ ${combatLine}
     const safeStory = typeof parsed.story === 'string' && parsed.story.trim().length > 0
       ? parsed.story
       : '새로운 이야기를 불러오는 데 실패했습니다. 호흡을 가다듬고 다시 시도하세요.'
-    const safeChoices = Array.isArray(parsed.choices)
-      ? parsed.choices.filter((c): c is string => typeof c === 'string' && c.trim().length > 0)
-      : []
+    const safeChoices = parsed.isCombat
+      ? []
+      : Array.isArray(parsed.choices)
+        ? parsed.choices.filter((c): c is string => typeof c === 'string' && c.trim().length > 0)
+        : []
     const safeBuffs = Array.isArray(parsed.buffs)
       ? parsed.buffs.filter(
           (buff): buff is NonNullable<ResBody['buffs']>[number] =>
